@@ -120,6 +120,17 @@ def update_task_status(task_id, status):
     return False
 
 
+def update_task_data(task_id, key, value):
+    tasks = load_tasks()
+
+    for task in tasks:
+        if task["id"] == task_id:
+            task[key] = value
+            save_tasks(tasks)
+            return True
+
+    return False
+
 # 给任务保存用户输入
 def add_user_input(task_id, user_input):
 
