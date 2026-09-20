@@ -473,5 +473,42 @@
         "user_inputs": [
             "我住在仙林校区3栋，手机号12345677654，水龙头坏了，报修类型是水电类，希望上门时间是9.23日13.00-15.00"
         ]
+    },
+    {
+        "id": 8,
+        "source": "user",
+        "subject": "明天提醒我交作业",
+        "analysis": {
+            "type": "设置提醒",
+            "core": "用户要求明天提醒他交作业",
+            "time": "明天",
+            "deadline": null,
+            "need_action": true,
+            "action": "在明天设置提醒用户交作业"
+        },
+        "status": "COMPLETED",
+        "created_at": "2026-09-20T20:51:12",
+        "history": [
+            {
+                "at": "2026-09-20T20:51:12",
+                "from": null,
+                "to": "NEW",
+                "note": "创建任务"
+            },
+            {
+                "at": "2026-09-20T20:51:12",
+                "from": "NEW",
+                "to": "PROCESSING",
+                "note": "开始处理"
+            },
+            {
+                "at": "2026-09-20T20:51:12",
+                "from": "PROCESSING",
+                "to": "COMPLETED",
+                "note": "无需个人信息，任务完成"
+            }
+        ],
+        "confirmation": null,
+        "result": null
     }
 ]

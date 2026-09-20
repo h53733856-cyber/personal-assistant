@@ -190,7 +190,8 @@ def task_exists(message_id):
     for task in tasks:
 
         # tasks.json 里面有没有同一个 message_id
-        if task["message_id"] == message_id:
+        # 注意：用户主动创建的任务没有 message_id，用 get 避免 KeyError
+        if task.get("message_id") == message_id:
             return True
 
     return False

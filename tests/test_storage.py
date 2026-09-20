@@ -43,6 +43,14 @@ class TestTaskStorage(unittest.TestCase):
         self.assertTrue(tm.task_exists("mail-1@test"))
         self.assertFalse(tm.task_exists("mail-2@test"))
 
+    def test_task_exists_with_user_tasks(self):
+        """回归：任务列表里混有用户任务（没有 message_id）时不能崩溃。"""
+        tm.create_user_task("报修任务", {"core": "x"})
+        tm.create_task(fake_email(1), {"core": "x"})
+
+        self.assertTrue(tm.task_exists("mail-1@test"))
+        self.assertFalse(tm.task_exists("mail-2@test"))
+
     def test_update_status(self):
         task = tm.create_task(fake_email(), {"core": "x"})
         tm.update_task_status(task["id"], "PROCESSING")
