@@ -134,12 +134,31 @@ class TestProcessTask(unittest.TestCase):
     def test_missing_info_waiting_user(self):
         task = create_repair_task()
 
-        with mock.patch("agent.task_processor.ask_llm_json",
-                        return_value=INFO_MISSING):
+        with mock.patch(
+            "agent.task_processor.ask_llm_json",
+            side_effect=[INFO_MISSING, REPAIR_INCOMPLETE],
+        ):
             out = tp.process_task(task["id"])
 
         self.assertTrue(out.ok)
         self.assertEqual(tm.get_task(task["id"])["status"], "WAITING_USER")
+
+    def test_repair_proceeds_despite_ai_misjudgment(self):
+        """核心防护：报修任务即使被 AI 误判为不需要个人信息，
+        也必须经过报修字段检查，不能直接 COMPLETED。"""
+        task = create_repair_task()
+
+        with mock.patch(
+            "agent.task_processor.ask_llm_json",
+            side_effect=[INFO_NO_PERSONAL, REPAIR_COMPLETE],
+        ):
+            out = tp.process_task(task["id"])
+
+        saved = tm.get_task(task["id"])
+
+        self.assertTrue(out.ok)
+        self.assertEqual(saved["status"], "WAITING_CONFIRMATION")
+        self.assertIsNotNone(saved["repair_data"])
 
     def test_repair_complete_waiting_confirmation(self):
         task = create_repair_task()

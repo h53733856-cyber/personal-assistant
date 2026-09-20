@@ -325,6 +325,12 @@ def process_task(task_id):
 6. 如果任务本身不需要个人信息，也要明确说明。
 7. 每一项个人信息都要说明来自哪个文件。
 8. 简洁回答。
+9. 宿舍报修、填写表单、提交申请、办理事务等任务，
+   必然需要姓名、联系方式、地址等个人信息，
+   必须判断为需要个人信息。
+10. 如果检索到的资料与任务无关，或者没有检索到任何资料，
+    不要因此判断任务不需要个人信息；
+    此时应把任务所需的信息列入 missing_info。
 
 必须严格按照下面的 JSON 格式返回：
 
@@ -406,7 +412,9 @@ def process_task(task_id):
     # 第四步：普通任务
     # ==============================
 
-    if analysis["need_personal_info"] is False:
+    is_repair = task["analysis"].get("type") == "宿舍报修"
+
+    if analysis["need_personal_info"] is False and not is_repair:
         update_task_status(task_id, "COMPLETED", note="无需个人信息，任务完成")
 
         out.emit()
@@ -420,7 +428,9 @@ def process_task(task_id):
     # 第五步：检查是否缺少信息
     # ==============================
 
-    if len(analysis.get("missing_info", [])) > 0:
+    # 注意：宿舍报修任务的完整性由报修表单字段检查把关（第六步），
+    # 不依赖这一步对个人信息的判断，避免 AI 误判导致任务提前结束。
+    if len(analysis.get("missing_info", [])) > 0 and not is_repair:
 
         update_task_status(task_id, "WAITING_USER", note="缺少个人信息")
 
@@ -440,7 +450,7 @@ def process_task(task_id):
     # 第六步：宿舍报修字段提取
     # ==============================
 
-    if task["analysis"].get("type") == "宿舍报修":
+    if is_repair:
 
         out.emit()
         out.emit("正在整理宿舍报修表单信息...")
