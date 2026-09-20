@@ -191,6 +191,61 @@ class TestEmailConsole(unittest.TestCase):
         fake_process.assert_called_once_with(1)
 
 
+class TestTaskConsole(unittest.TestCase):
+
+    def setUp(self):
+        self._ctx = TempDataDir()
+        self._ctx.__enter__()
+        self._echo = tp.ECHO
+        tp.ECHO = False
+
+    def tearDown(self):
+        tp.ECHO = self._echo
+        self._ctx.__exit__(None, None, None)
+
+    def test_all_tasks_includes_terminal(self):
+        """全部任务视图能看到已完成/失败的任务。"""
+        t1 = tm.create_user_task("待办任务", ANALYSIS)
+        tm.update_task_status(t1["id"], "WAITING_USER")
+        t2 = tm.create_user_task("做完的任务", ANALYSIS)
+        tm.update_task_status(t2["id"], "COMPLETED")
+
+        buf = io.StringIO()
+
+        with mock.patch("builtins.input", side_effect=["2", "q", "q"]), \
+             contextlib.redirect_stdout(buf):
+            cli.task_console()
+
+        output = buf.getvalue()
+        self.assertIn("全部任务（共 2 个）", output)
+        self.assertIn("等你补充", output)
+        self.assertIn("已完成", output)
+
+    def test_pending_view_delegates(self):
+        with mock.patch("builtins.input", side_effect=["1", "q", "q"]), \
+             mock.patch("entrypoints.cli.list_tasks"), \
+             mock.patch("entrypoints.cli.interactive_loop") as fake:
+            cli.task_console()
+
+        fake.assert_called_once_with()
+
+    def test_select_terminal_task_shows_status(self):
+        t = tm.create_user_task("做完的任务", ANALYSIS)
+        tm.update_task_status(t["id"], "FAILED")
+        tm.update_task_data(t["id"], "result",
+                            {"success": False, "message": "提交失败"})
+
+        buf = io.StringIO()
+
+        with mock.patch("builtins.input",
+                        side_effect=["2", str(t["id"]), "q"]), \
+             contextlib.redirect_stdout(buf):
+            cli.task_console()
+
+        self.assertIn("失败", buf.getvalue())
+        self.assertIn("提交失败", buf.getvalue())
+
+
 class TestRepairConsole(unittest.TestCase):
 
     def setUp(self):
@@ -434,9 +489,8 @@ class TestMainMenu(unittest.TestCase):
         fake.assert_called_once_with()
 
     def test_menu_choice_3_tasks(self):
-        with mock.patch("builtins.input", side_effect=["3", "q"]), \
-             mock.patch("entrypoints.cli.list_tasks"), \
-             mock.patch("entrypoints.cli.interactive_loop") as fake:
+        with mock.patch("builtins.input", side_effect=["3", "q", "q"]), \
+             mock.patch("entrypoints.cli.task_console") as fake:
             cli.main_menu()
 
         fake.assert_called_once_with()

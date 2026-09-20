@@ -384,6 +384,103 @@ def list_tasks():
         print("任务状态：", task["status"])
 
 
+def list_all_tasks():
+    """列出全部任务（含已完成/失败/取消），可选择继续处理。"""
+
+    tasks = sorted(task_manager.load_tasks(), key=lambda t: t["id"])
+
+    print()
+    print("====== 全部任务（共 %d 个）======" % len(tasks))
+
+    if not tasks:
+
+        print("（没有任务）")
+        return
+
+    for t in tasks:
+
+        print()
+        print("任务 %d ｜ %s ｜ %s"
+              % (t["id"],
+                 REPAIR_STATUS_NAMES.get(t["status"], t["status"]),
+                 t["subject"][:30]))
+        print("  来源：%s ｜ 核心：%s"
+              % ("用户发起" if t.get("source") == "user" else "邮件触发",
+                 (t.get("analysis") or {}).get("core", "")))
+
+        result = t.get("result")
+
+        if result:
+            print("  结果：%s" % result.get("message", ""))
+
+    print()
+    task_id_input = _ask("输入任务 ID 继续处理（q 返回）：")
+
+    if task_id_input is None or task_id_input.strip().lower() == "q":
+        return
+
+    try:
+        task_id = int(task_id_input.strip())
+    except ValueError:
+
+        print("无法识别你的输入。")
+        return
+
+    task = task_manager.get_task(task_id)
+
+    if task is None:
+
+        print("任务不存在。")
+        return
+
+    if task["status"] in (
+        "NEW", "PROCESSING", "WAITING_USER", "WAITING_CONFIRMATION"
+    ):
+
+        drive_task(task_id)
+
+    else:
+
+        print()
+        print("任务 %d 当前状态：%s"
+              % (task_id,
+                 REPAIR_STATUS_NAMES.get(task["status"], task["status"])))
+
+        if task.get("result"):
+            print("结果：%s" % task["result"].get("message", ""))
+
+
+def task_console():
+    """任务中心：待处理任务 / 全部任务。"""
+
+    while True:
+
+        print()
+        print("======== 任务中心 ========")
+        print("1. 待处理任务（需要你补充/确认的）")
+        print("2. 全部任务（含已完成/失败/取消）")
+        print("q. 返回")
+        print()
+
+        choice = _ask("请选择：")
+
+        if choice is None or choice == "q":
+            return
+
+        if choice == "1":
+
+            list_tasks()
+            interactive_loop()
+
+        elif choice == "2":
+
+            list_all_tasks()
+
+        else:
+
+            print("无法识别你的输入。")
+
+
 def create_task_from_text(text):
     """分析用户请求并创建任务，返回最新任务（或 None）。"""
 
@@ -630,7 +727,7 @@ def main_menu():
         print("========================================")
         print("1. 邮件服务：检查 smail，AI 分析并自动创建任务")
         print("2. 宿舍报修：发起报修 / 查看报修记录")
-        print("3. 任务中心：查看任务、补充信息、确认执行")
+        print("3. 任务中心：待办任务 / 全部任务")
         print("4. 数据管理：清空任务数据 / 清空邮件记录")
         print("q. 退出")
         print()
@@ -656,8 +753,7 @@ def main_menu():
 
         elif choice == "3":
 
-            list_tasks()
-            interactive_loop()
+            task_console()
 
         else:
 
