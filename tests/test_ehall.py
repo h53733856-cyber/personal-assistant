@@ -2,6 +2,7 @@
 tools.ehall 的单元测试（网络全部 mock，不产生真实请求）。
 """
 
+import json
 import os
 import unittest
 from unittest import mock
@@ -11,24 +12,33 @@ import tools.ehall as ehall
 
 from tests.helpers import TempDataDir
 
-FORM_HTML = """
-<html><body>
-<select id="XMDM">
-  <option value="">请选择</option>
-  <option value="1001">水龙头</option>
-  <option value="1002">空调</option>
-</select>
-<select id="QYDM">
-  <option value="2001">仙林校区</option>
-  <option value="2002">鼓楼校区</option>
-</select>
-</body></html>
-"""
+# 模拟真实树接口的返回（pId -> rows）
+TREE_XM = {
+    "": [
+        {"id": "01", "name": "水电类", "pId": "", "isParent": 1},
+    ],
+    "01": [
+        {"id": "0111", "name": "水电类/水龙头跑冒滴漏",
+         "pId": "01", "isParent": 0},
+        {"id": "0115", "name": "水电类/水龙头松动",
+         "pId": "01", "isParent": 0},
+    ],
+}
+
+TREE_QY = {
+    "": [
+        {"id": "1", "name": "仙林校区", "pId": "", "isParent": 1},
+    ],
+    "1": [
+        {"id": "1101", "name": "仙林校区/学生公寓一组团/仙林宿舍01幢",
+         "pId": "1", "isParent": 0},
+    ],
+}
 
 REPAIR_DATA = {
     "SJH": "13800000000",
-    "XMDM": "水龙头/水龙头漏水",
-    "QYDM": "仙林校区",
+    "XMDM": "水电类/水龙头跑冒滴漏",
+    "QYDM": "仙林校区/学生公寓一组团/仙林宿舍01幢",
     "GZDD": "某宿舍楼某房间",
     "DZ_FBSMKSSJ": "2026-09-20 19:00",
     "DZ_FBSMJSSJ": "2026-09-20 21:00",
@@ -91,6 +101,25 @@ class TestResolveCode(unittest.TestCase):
         self.assertEqual(ehall.resolve_code("XMDM", "", self.CODES), "")
 
 
+def _fake_tree_post(url, **kwargs):
+    """模拟真实树接口：按 pId 参数返回对应层级的行。"""
+    pid = ""
+
+    if "=" in kwargs.get("data", ""):
+        pid = kwargs["data"].split("=", 1)[1]
+
+    uuid = url.rsplit("/", 1)[-1].split(".")[0]
+    tree = TREE_XM if uuid.startswith("64bfd69f") else TREE_QY
+
+    resp = mock.Mock()
+    resp.json.return_value = {
+        "datas": {"code": {"rows": tree.get(pid, [])}},
+        "code": "0",
+    }
+    resp.raise_for_status = mock.Mock()
+    return resp
+
+
 class TestFetchCodes(unittest.TestCase):
 
     def setUp(self):
@@ -100,30 +129,32 @@ class TestFetchCodes(unittest.TestCase):
     def tearDown(self):
         self._ctx.__exit__(None, None, None)
 
-    def _resp(self, html):
-        resp = mock.Mock()
-        resp.text = html
-        resp.raise_for_status = mock.Mock()
-        return resp
-
     def test_fetch_and_cache(self):
-        with mock.patch("tools.ehall.httpx.get",
-                        return_value=self._resp(FORM_HTML)):
+        with mock.patch("tools.ehall.httpx.post",
+                        side_effect=_fake_tree_post):
             codes = ehall.fetch_repair_codes(force=True)
 
-        self.assertEqual(codes["XMDM"]["水龙头"], "1001")
-        self.assertEqual(codes["QYDM"]["仙林校区"], "2001")
+        # 只有叶子（isParent=0）进入字典，且名称是完整路径
+        self.assertEqual(codes["XMDM"]["水电类/水龙头跑冒滴漏"], "0111")
+        self.assertEqual(codes["QYDM"]["仙林校区/学生公寓一组团/仙林宿舍01幢"],
+                         "1101")
+        self.assertNotIn("水电类", codes["XMDM"])
 
         # 缓存生效：不再请求网络
-        with mock.patch("tools.ehall.httpx.get") as fake:
+        with mock.patch("tools.ehall.httpx.post") as fake:
             codes2 = ehall.fetch_repair_codes()
 
         fake.assert_not_called()
         self.assertEqual(codes2, codes)
 
-    def test_fetch_no_selects_raises(self):
-        with mock.patch("tools.ehall.httpx.get",
-                        return_value=self._resp("<html>无表单</html>")):
+    def test_fetch_empty_raises(self):
+        def empty_post(url, **kwargs):
+            resp = mock.Mock()
+            resp.json.return_value = {"datas": {"code": {"rows": []}}}
+            resp.raise_for_status = mock.Mock()
+            return resp
+
+        with mock.patch("tools.ehall.httpx.post", side_effect=empty_post):
             with self.assertRaises(ValueError):
                 ehall.fetch_repair_codes(force=True)
 
@@ -160,11 +191,11 @@ class TestSubmitRepair(unittest.TestCase):
         self.assertIn("无法匹配报修类型代码", result["message"])
 
     def test_real_submit_success(self):
-        """真实模式：文本换成字典码后提交。"""
+        """真实模式：文本换成字典码后按 data=<JSON> 格式提交。"""
 
         ehall.save_codes({
-            "XMDM": {"水龙头/水龙头漏水": "1001"},
-            "QYDM": {"仙林校区": "2001"},
+            "XMDM": {"水电类/水龙头跑冒滴漏": "0111"},
+            "QYDM": {"仙林校区/学生公寓一组团/仙林宿舍01幢": "1101"},
         })
 
         resp = mock.Mock()
@@ -175,16 +206,43 @@ class TestSubmitRepair(unittest.TestCase):
             result = ehall.submit_repair(REPAIR_DATA)
 
         fake.assert_called_once()
-        payload = fake.call_args.kwargs["data"]
-        self.assertEqual(payload["XMDM"], "1001")
-        self.assertEqual(payload["QYDM"], "2001")
+
+        # 请求体是表单编码的 data=<JSON字符串>
+        sent = fake.call_args.kwargs["data"]
+        self.assertIn("data", sent)
+        payload = json.loads(sent["data"])
+        self.assertEqual(payload["XMDM"], "0111")
+        self.assertEqual(payload["QYDM"], "1101")
         self.assertTrue(result["success"])
         self.assertEqual(result["message"], "提交成功")
 
+    def test_real_submit_ambiguous_codes_fails(self):
+        """报修类型匹配到多个候选：明确失败并提示候选，不提交。"""
+
+        ehall.save_codes({
+            "XMDM": {
+                "水电类/水龙头跑冒滴漏": "0111",
+                "水电类/水龙头松动": "0115",
+            },
+            "QYDM": {"仙林校区/学生公寓一组团/仙林宿舍01幢": "1101"},
+        })
+
+        # "水龙头" 同时出现在两个选项里 → 有歧义
+        data = dict(REPAIR_DATA, XMDM="水龙头")
+
+        with mock.patch.dict(os.environ, {"EHALL_DRY_RUN": "0"}), \
+             mock.patch("tools.ehall.httpx.post") as fake:
+            result = ehall.submit_repair(data)
+
+        fake.assert_not_called()
+        self.assertFalse(result["success"])
+        self.assertIn("无法匹配报修类型代码", result["message"])
+        self.assertIn("水龙头跑冒滴漏", result["message"])
+
     def test_real_submit_network_error(self):
         ehall.save_codes({
-            "XMDM": {"水龙头/水龙头漏水": "1001"},
-            "QYDM": {"仙林校区": "2001"},
+            "XMDM": {"水电类/水龙头跑冒滴漏": "0111"},
+            "QYDM": {"仙林校区/学生公寓一组团/仙林宿舍01幢": "1101"},
         })
 
         with mock.patch.dict(os.environ, {"EHALL_DRY_RUN": "0"}), \

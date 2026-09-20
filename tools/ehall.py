@@ -1,39 +1,47 @@
 """
 EHALL 工具：宿舍报修的数据准备与提交。
 
+接口来自对报修应用（ssbxapp，金智 EMAP 平台）的真实分析：
+- 表单模型：POST /xsfw/sys/ssbxapp/modules/wybx.do
+- 报修类型树：POST /xsfw/code/64bfd69f-....do（pId 递归取子节点）
+- 报修区域树：POST /xsfw/code/281e295f-....do（pId 递归取子节点）
+- 提交：POST /xsfw/sys/ssbxapp/modules/repairApply/repairApplyAdd.do
+  请求体：data=<JSON字符串>（表单编码），成功判定 code=="0"
+
 安全设计：
 - EHALL_DRY_RUN=1（默认）：模拟提交，不产生真实报修单
-- EHALL_DRY_RUN=0：真实提交（必须先人工确认，且字典码可解析）
+- EHALL_DRY_RUN=0：真实提交（必须先人工确认，字典码可解析）
 - 登录凭据：浏览器 Cookie（环境变量 EHALL_COOKIE），
   你自己在浏览器登录 EHALL 后把 Cookie 粘贴进 .env
-- 字典码：报修类型（XMDM）/ 报修区域（QYDM）的选项代码
-  用 Cookie 抓取报修表单页自动解析，缓存到 data/ehall_codes.json
+- 字典码缓存到 data/ehall_codes.json，供 AI 选择和提交解析
 
 .env 相关配置：
     EHALL_COOKIE=xxx
     EHALL_DRY_RUN=1        # 1 模拟（默认），0 真实提交
-    EHALL_BASE=https://ehall.nju.edu.cn
-    EHALL_REPAIR_FORM=/modules/repairApply/repairApply.do
+    EHALL_BASE=https://ehallapp.nju.edu.cn
 """
 
 import json
 import os
 
 import httpx
-from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 
 import config
 
-EHALL_BASE = os.getenv("EHALL_BASE", "https://ehall.nju.edu.cn")
+# 读取项目目录下的 .env（EHALL_COOKIE 等）
+load_dotenv()
 
-# 真实提交接口（此前分析出的地址）
-REPAIR_APPLY_API = "/modules/repairApply/repairApplyAdd.do"
+EHALL_BASE = os.getenv("EHALL_BASE", "https://ehallapp.nju.edu.cn")
 
-# 报修表单页面（用于抓取字典码）
-REPAIR_FORM_PAGE = os.getenv(
-    "EHALL_REPAIR_FORM",
-    "/modules/repairApply/repairApply.do",
-)
+# 真实提交接口
+REPAIR_APPLY_API = "/xsfw/sys/ssbxapp/modules/repairApply/repairApplyAdd.do"
+
+# 报修类型（XMDM）/ 报修区域（QYDM）的字典树接口
+CODE_XMDM_URL = "/xsfw/code/64bfd69f-dc69-413d-b2de-33b99c8861f9.do"
+CODE_QYDM_URL = "/xsfw/code/281e295f-7060-44bf-b114-28c0d9e2f63e.do"
+
+REFERER = EHALL_BASE + "/xsfw/sys/ssbxapp/*default/index.do"
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -46,6 +54,10 @@ def _headers():
     return {
         "Cookie": os.getenv("EHALL_COOKIE", ""),
         "User-Agent": USER_AGENT,
+        "X-Requested-With": "XMLHttpRequest",
+        "Origin": EHALL_BASE,
+        "Referer": REFERER,
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     }
 
 
@@ -68,7 +80,7 @@ def build_repair_data(
     remark="",
     image="",
 ):
-    """构造宿舍报修表单数据。"""
+    """构造宿舍报修表单数据（字段与真实表单一致）。"""
 
     return {
         "SJH": phone,
@@ -105,29 +117,44 @@ def save_codes(codes):
         json.dump(codes, f, ensure_ascii=False, indent=4)
 
 
-def _classify_select(select):
-    """根据下拉框的 id/name 和选项文本猜测它是类型还是区域。"""
+def _fetch_tree(url):
+    """递归抓取一棵选项树，返回 {叶子完整名称: 代码}。
 
-    select_id = (select.get("id") or select.get("name") or "").upper()
+    树接口：POST pId=<父节点ID>，pId 为空时返回根节点；
+    isParent=1 的节点继续用它的 id 抓子节点。
+    """
 
-    if "XM" in select_id:
-        return "xm"
+    leaves = {}
+    queue = [""]
 
-    if "QY" in select_id:
-        return "qy"
+    while queue:
 
-    texts = " ".join(
-        o.get_text(strip=True) for o in select.find_all("option")
-    )
+        pid = queue.pop(0)
 
-    if ("校区" in texts) or ("宿舍" in texts) or ("楼" in texts):
-        return "qy"
+        resp = httpx.post(
+            EHALL_BASE + url,
+            headers=_headers(),
+            data="pId=" + pid,
+            timeout=30,
+            follow_redirects=True,
+        )
+        resp.raise_for_status()
 
-    return "xm"
+        data = resp.json()
+        rows = data.get("datas", {}).get("code", {}).get("rows", [])
+
+        for row in rows:
+
+            if row.get("isParent"):
+                queue.append(row["id"])
+            else:
+                leaves[row["name"]] = row["id"]
+
+    return leaves
 
 
 def fetch_repair_codes(force=False):
-    """抓取报修类型（XMDM）/ 报修区域（QYDM）的选项代码并缓存。
+    """抓取报修类型（XMDM）/ 报修区域（QYDM）的完整选项代码并缓存。
 
     默认优先使用本地缓存；force=True 时重新抓取。
     返回 {"XMDM": {label: code}, "QYDM": {label: code}}。
@@ -140,40 +167,14 @@ def fetch_repair_codes(force=False):
         if cached:
             return cached
 
-    resp = httpx.get(
-        EHALL_BASE + REPAIR_FORM_PAGE,
-        headers=_headers(),
-        timeout=30,
-        follow_redirects=True,
-    )
-    resp.raise_for_status()
+    codes = {
+        "XMDM": _fetch_tree(CODE_XMDM_URL),
+        "QYDM": _fetch_tree(CODE_QYDM_URL),
+    }
 
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    codes = {}
-
-    for select in soup.find_all("select"):
-
-        kind = _classify_select(select)
-
-        mapping = {}
-
-        for option in select.find_all("option"):
-
-            value = option.get("value", "")
-            label = option.get_text(strip=True)
-
-            if value and label and label != "请选择":
-                mapping[label] = value
-
-        if mapping:
-            codes.setdefault(
-                "QYDM" if kind == "qy" else "XMDM", {}
-            ).update(mapping)
-
-    if not codes:
+    if not codes["XMDM"] or not codes["QYDM"]:
         raise ValueError(
-            "没有解析到报修表单的下拉选项。"
+            "没有抓取到报修选项。"
             "请确认 .env 里配置了 EHALL_COOKIE（浏览器登录 EHALL 后粘贴）。"
         )
 
@@ -182,11 +183,18 @@ def fetch_repair_codes(force=False):
     return codes
 
 
+def get_code_labels(kind):
+    """返回某类字典的全部选项名称（供 AI 从真实选项中选择）。"""
+
+    return list(load_codes().get(kind, {}).keys())
+
+
 def resolve_code(kind, text, codes=None):
     """把人类文本匹配成字典码。
 
-    匹配顺序：完全相等 → 选项标签出现在文本里 → 文本出现在选项标签里。
-    找不到时返回 None。
+    匹配顺序：完全相等 → 选项名称出现在文本里（唯一时）→
+    文本出现在选项名称里（唯一时）。
+    有歧义或找不到时返回 None（提交前会明确报错，不会提交错误数据）。
     """
 
     if not text:
@@ -200,19 +208,31 @@ def resolve_code(kind, text, codes=None):
     if text in mapping:
         return mapping[text]
 
-    # 例如 "水龙头/水龙头漏水" 包含选项 "水龙头"
-    matches = [v for k, v in mapping.items() if k and k in text]
+    contains = {k: v for k, v in mapping.items() if k and k in text}
 
-    if len(matches) == 1:
-        return matches[0]
+    if len(contains) == 1:
+        return next(iter(contains.values()))
 
-    # 选项标签包含文本，例如 "仙林校区" 包含 "仙林"
-    matches = [v for k, v in mapping.items() if k and text in k]
+    if len(contains) > 1:
+        return None
 
-    if len(matches) == 1:
-        return matches[0]
+    contained = {k: v for k, v in mapping.items() if k and text in k}
+
+    if len(contained) == 1:
+        return next(iter(contained.values()))
 
     return None
+
+
+def code_candidates(kind, text, codes=None):
+    """返回与文本相关的候选选项名称（用于报错提示）。"""
+
+    if codes is None:
+        codes = load_codes()
+
+    mapping = codes.get(kind, {})
+
+    return [k for k in mapping if k and (text in k or k in text)][:8]
 
 
 # --------------------------------------------------
@@ -243,36 +263,41 @@ def submit_repair(data):
 
     codes = load_codes()
 
-    xmdm = resolve_code("XMDM", payload.get("XMDM", ""), codes)
-    qydm = resolve_code("QYDM", payload.get("QYDM", ""), codes)
+    xmdm_text = payload.get("XMDM", "")
+    qydm_text = payload.get("QYDM", "")
+
+    xmdm = resolve_code("XMDM", xmdm_text, codes)
+    qydm = resolve_code("QYDM", qydm_text, codes)
 
     if not xmdm:
-        return {
-            "success": False,
-            "message": "无法匹配报修类型代码：%s"
-                       "（请到数据管理更新 EHALL 字典）"
-                       % payload.get("XMDM", ""),
-        }
+        candidates = code_candidates("XMDM", xmdm_text, codes)
+        message = "无法匹配报修类型代码：%s" % xmdm_text
+
+        if candidates:
+            message += "。接近的选项：" + "、".join(candidates)
+
+        return {"success": False, "message": message}
 
     if not qydm:
-        return {
-            "success": False,
-            "message": "无法匹配报修区域代码：%s"
-                       "（请到数据管理更新 EHALL 字典）"
-                       % payload.get("QYDM", ""),
-        }
+        candidates = code_candidates("QYDM", qydm_text, codes)
+        message = "无法匹配报修区域代码：%s" % qydm_text
+
+        if candidates:
+            message += "。接近的选项：" + "、".join(candidates)
+
+        return {"success": False, "message": message}
 
     payload["XMDM"] = xmdm
     payload["QYDM"] = qydm
 
     # ==============================
-    # 真实 POST
+    # 真实 POST（表单编码，data=<JSON字符串>）
     # ==============================
 
     try:
         resp = httpx.post(
             EHALL_BASE + REPAIR_APPLY_API,
-            data=payload,
+            data={"data": json.dumps(payload, ensure_ascii=False)},
             headers=_headers(),
             timeout=60,
             follow_redirects=True,
@@ -283,36 +308,29 @@ def submit_repair(data):
             "message": "EHALL 请求失败：" + str(e),
         }
 
-    # 优先按 JSON 解析
     try:
         result = resp.json()
-
-        if isinstance(result, dict):
-            code = str(
-                result.get("code", result.get("success", ""))
-            )
-            success = code in ("0", "1", "True", "true", "200")
-
-            return {
-                "success": success,
-                "message": str(
-                    result.get("msg")
-                    or result.get("message")
-                    or "提交完成"
-                ),
-                "response": result,
-            }
     except ValueError:
-        pass
+        text = resp.text
 
-    # 退回按 HTML 提示判断
-    text = resp.text
+        if "成功" in text and "失败" not in text:
+            return {"success": True, "message": "提交成功"}
 
-    if "成功" in text and "失败" not in text:
-        return {"success": True, "message": "提交成功"}
+        return {
+            "success": False,
+            "message": "提交结果无法确认，请到 EHALL 查看报修记录",
+            "response_text": text[:500],
+        }
 
-    return {
-        "success": False,
-        "message": "提交结果无法确认，请到 EHALL 查看报修记录",
-        "response_text": text[:500],
-    }
+    code = str(result.get("code", ""))
+
+    success = code == "0"
+
+    message = str(
+        result.get("msg")
+        or result.get("description")
+        or result.get("message")
+        or ("提交成功" if success else "提交失败")
+    )
+
+    return {"success": success, "message": message, "response": result}

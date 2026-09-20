@@ -118,6 +118,15 @@ def _extract_repair_fields(core, user_input_text, personal_info="",
         prev_repair_data, ensure_ascii=False
     ) if prev_repair_data else "（无）"
 
+    # 真实表单的可选报修类型 / 报修区域（从 EHALL 抓取的字典）
+    from tools.ehall import get_code_labels
+
+    xm_options = get_code_labels("XMDM")
+    qy_options = get_code_labels("QYDM")
+
+    xm_text = "\n".join("- " + o for o in xm_options)
+    qy_text = "\n".join("- " + o for o in qy_options)
+
     prompt = f"""
 你是我的个人助手。
 
@@ -136,6 +145,13 @@ def _extract_repair_fields(core, user_input_text, personal_info="",
 {prev_text}
 
 请从以上内容中提取宿舍报修表单需要的信息。
+
+报修类型只能从下面的真实选项中选择一个（输出完整选项文本，逐字复制）：
+{xm_text}
+
+报修区域只能从下面的真实选项中选择一个（输出完整选项文本，逐字复制）：
+{qy_text}
+
 
 需要的字段：
 
@@ -175,7 +191,8 @@ def _extract_repair_fields(core, user_input_text, personal_info="",
 3. 无法确定的字段必须返回空字符串。
 4. 时间必须尽量转换成 yyyy-MM-dd HH:mm。
 5. 如果用户没有提供具体时间，不要自行猜测。
-6. 报修类型和报修区域如果无法确定，也不要自行猜测。
+6. 报修类型和报修区域必须逐字使用上面列表中的选项文本，
+   不能自己编造选项；如果用户描述无法对应任何选项，返回空字符串。
 7. description 可以使用任务内容中明确描述的问题。
 8. 只返回 JSON，不要添加 Markdown 或解释。
 
