@@ -147,92 +147,112 @@ def extract_body(message):
 
 
 # --------------------------------------------------
+# 生成邮件唯一标识
+# --------------------------------------------------
+
+def get_message_id(message, subject, sender, date):
+
+    # 优先使用邮件本身提供的 Message-ID
+    message_id = message.get("Message-ID")
+
+    if message_id:
+        return message_id
+
+    # 如果邮件没有 Message-ID
+    # 就使用：主题 + 发件人 + 时间
+    # 作为备用唯一标识
+    return subject + "|" + sender + "|" + date
+
+# --------------------------------------------------
 # 获取最近邮件
 # --------------------------------------------------
 
 def get_recent_emails():
 
+    print("1. 开始连接 IMAP 服务器")
+
     mail = imaplib.IMAP4_SSL(
-        IMAP_SERVER,
-        IMAP_PORT
+        "imap.exmail.qq.com",
+        993
     )
 
-    try:
+    print("2. IMAP 服务器连接成功")
 
-        # 登录
-        mail.login(
-            EMAIL_ADDRESS,
-            EMAIL_PASSWORD
+    mail.login(
+        os.getenv("SMAIL_EMAIL"),
+        os.getenv("SMAIL_PASSWORD")
+    )
+
+    print("3. 邮箱登录成功")
+
+    mail.select("INBOX", readonly=True)
+    #打开收件箱，而且只读，不修改邮箱内容
+
+    print("4. 收件箱打开成功")
+
+    status, messages = mail.search(None, "ALL")
+    
+    print("5. 邮件搜索完成")
+
+    email_ids = messages[0].split()
+
+    print("6. 邮件数量：", len(email_ids))
+
+    emails = []
+
+    for email_id in email_ids[-5:]:
+
+        print("正在读取邮件：", email_id)
+
+        status, msg_data = mail.fetch(
+            email_id,
+            "(RFC822)"
         )
 
-        # 打开收件箱
-        mail.select("INBOX", readonly=True)
+        print("邮件读取完成：", email_id)
 
-        # 搜索所有邮件
-        status, messages = mail.search(None, "ALL")
+        raw_email = msg_data[0][1]
 
-        if status != "OK":
-            return []
+        message = email.message_from_bytes(raw_email)
 
-        email_ids = messages[0].split()
+        print("Message-ID 原始值：", message.get("Message-ID"))
 
-        # 最多获取最近 5 封
-        email_ids = email_ids[-5:]
-
-        results = []
-
-        for email_id in email_ids:
-
-            status, data = mail.fetch(
-                email_id,
-                "(RFC822)"
+        subject = str(
+            make_header(
+                decode_header(message["Subject"])
             )
+        )
 
-            if status != "OK":
-                continue
-
-            raw_email = data[0][1]
-
-            message = email.message_from_bytes(raw_email)
-
-            # 解码主题
-            subject = str(
-                make_header(
-                    decode_header(
-                        message.get("Subject", "")
-                    )
-                )
+        sender = str(
+            make_header(
+                decode_header(message["From"])
             )
+        )
 
-            # 解码发件人
-            sender = str(
-                make_header(
-                    decode_header(
-                        message.get("From", "")
-                    )
-                )
-            )
+        date = message.get("Date", "")
 
-            # 获取时间
-            date = message.get("Date", "")
+        body = extract_body(message)
 
-            # 获取正文
-            body = extract_body(message)
+        # 生成邮件唯一标识
+        message_id = get_message_id(
+            message,
+            subject,
+            sender,
+            date
+        )
 
-            results.append({
-                "subject": subject,
-                "sender": sender,
-                "date": date,
-                "body": body
-            })
+        print("最终使用的 message_id：", message_id)
 
-        return results
+        emails.append({
+            "message_id": message_id,
+            "subject": subject,
+            "sender": sender,
+            "date": date,
+            "body": body
+        })
 
-    finally:
+    mail.logout()
 
-        try:
-            mail.close()
-        except:
-            pass
+    print("7. 邮箱读取完成")
 
-        mail.logout()
+    return emails

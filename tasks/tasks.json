@@ -1,0 +1,96 @@
+[
+    {
+        "id": 1,
+        "message_id": "<tencent_006E92CC25FB0DF3585F8407@qq.com>",
+        "subject": "【通知】关于南京大学新版VPN平台正式上线的通知",
+        "sender": "\" ITSC \" <itsc@nju.edu.cn>",
+        "date": "Tue, 15 Sep 2026 17:38:48 +0800",
+        "analysis": {
+            "type": "系统升级通知",
+            "core": "南京大学将于2026年9月16日起上线新版VPN平台，旧版VPN停止服务，需用户更换客户端或修改接入地址。",
+            "time": "2026年9月16日4点后新版VPN正式上线；9月16日凌晨0点-4点VPN暂停服务",
+            "deadline": null,
+            "need_action": true,
+            "action": "旧版VPN用户需卸载旧版EasyConnect客户端，电脑端访问https://vpn.nju.edu.cn下载新版VPN客户端，移动端在应用商城搜索“aTrust”安装；新版VPN试用用户如已安装aTrust，电脑端在客户端“设置”-“接入地址”切换并输入https://vpn.nju.edu.cn，移动端在登录界面将地址改为https://vpn.nju.edu.cn（如已登录需先退出）。"
+        },
+        "status": "COMPLETED",
+        "user_inputs": [
+            "我已经安装好了新版 VPN 客户端",
+            "我已经修改了接入地址，并且成功连接 VPN"
+        ]
+    },
+    {
+        "id": 2,
+        "message_id": "test-ehall-001",
+        "subject": "【测试】EHALL申请提交",
+        "sender": "test@example.com",
+        "date": "2026-09-19",
+        "analysis": {
+            "type": "事务办理",
+            "core": "需要在EHALL提交一份申请。",
+            "time": null,
+            "deadline": null,
+            "need_action": true,
+            "action": "填写申请表并提交。"
+        },
+        "status": "COMPLETED",
+        "user_inputs": [
+            "申请信息已经准备好了",
+            "申请信息已经全部准备好了，可以进行提交"
+        ]
+    },
+    {
+        "id": 3,
+        "message_id": "test-3",
+        "subject": "【测试】EHALL申请提交",
+        "sender": "test@example.com",
+        "date": "2026-09-19",
+        "analysis": {
+            "type": "事务办理",
+            "core": "需要在EHALL提交一份申请。",
+            "time": null,
+            "deadline": null,
+            "need_action": true,
+            "action": "填写申请表并提交。"
+        },
+        "status": "COMPLETED",
+        "user_inputs": [
+            "申请信息已经全部准备好了"
+        ]
+    },
+    {
+        "id": 4,
+        "message_id": "《生成式软件工程》课程通知|Yanyan Jiang <jyy@nju.edu.cn>|Mon, 24 Aug 2026 18:33:19 +0800",
+        "subject": "《生成式软件工程》课程通知",
+        "sender": "Yanyan Jiang <jyy@nju.edu.cn>",
+        "date": "Mon, 24 Aug 2026 18:33:19 +0800",
+        "analysis": {
+            "type": "课程通知",
+            "core": "《生成式软件工程》课程第一周因原教室设备未就绪临时调至逸 B-212，推荐在宿舍观看视频直播并请互相转告。",
+            "time": "8 月 25 日周二上午 3-4 节",
+            "deadline": null,
+            "need_action": true,
+            "action": "收到邮件的同学互相转告；可选择在宿舍观看视频直播"
+        },
+        "status": "COMPLETED"
+    },
+    {
+        "id": 5,
+        "message_id": "test-5",
+        "subject": "【测试】EHALL申请提交",
+        "sender": "test@example.com",
+        "date": "2026-09-19",
+        "analysis": {
+            "type": "事务办理",
+            "core": "需要在EHALL提交一份申请。",
+            "time": null,
+            "deadline": null,
+            "need_action": true,
+            "action": "填写申请表并提交。"
+        },
+        "status": "COMPLETED",
+        "user_inputs": [
+            "申请信息已经准备好了"
+        ]
+    }
+]
