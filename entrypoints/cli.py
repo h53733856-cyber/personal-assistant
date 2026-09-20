@@ -81,6 +81,15 @@ def create_task_from_text(text):
     _print_outcome(process_task(task["id"]))
 
 
+def record_feedback_from_cli(text, commit=False):
+    from agent.growth import record_feedback
+
+    path = record_feedback(text, commit=commit)
+
+    print("反馈已记录：", path)
+    print("Agent 之后的任务会遵守这条规则。")
+
+
 def interactive_loop():
     """任务交互循环（原 main.py 的交互部分）。"""
 
@@ -230,11 +239,17 @@ def main():
         "command",
         nargs="?",
         default="interact",
-        choices=["interact", "email", "tasks", "new"],
+        choices=["interact", "email", "tasks", "new", "feedback"],
         help="interact=检查邮件并进入任务交互（默认）；"
-             "email=只检查邮件；tasks=列出任务；new=创建新任务",
+             "email=只检查邮件；tasks=列出任务；new=创建新任务；"
+             "feedback=记录一条用户纠正/偏好",
     )
-    parser.add_argument("text", nargs="*", help="new 命令的任务描述")
+    parser.add_argument("text", nargs="*", help="new / feedback 命令的内容")
+    parser.add_argument(
+        "--commit",
+        action="store_true",
+        help="feedback 时自动 git 提交",
+    )
 
     args = parser.parse_args()
 
@@ -248,6 +263,12 @@ def main():
             print("请提供任务描述，例如：python main.py new 我要报修宿舍水龙头")
             return
         create_task_from_text(text)
+    elif args.command == "feedback":
+        text = " ".join(args.text)
+        if not text:
+            print("请提供反馈内容，例如：python main.py feedback 报修时间格式要统一")
+            return
+        record_feedback_from_cli(text, commit=args.commit)
     else:
         # 默认：与旧 main.py 一致——先检查邮件，再进入任务交互
         run_email_check()

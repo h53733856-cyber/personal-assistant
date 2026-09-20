@@ -163,6 +163,26 @@ def emails_check():
     return jsonify({"ok": True, "events": events})
 
 
+@app.post("/api/feedback")
+def feedback():
+    """记录用户纠正 / 偏好，Agent 之后的任务会遵守。"""
+
+    data = request.get_json(force=True, silent=True) or {}
+    content = (data.get("content") or "").strip()
+
+    if not content:
+        return jsonify({"ok": False, "message": "内容不能为空"}), 400
+
+    from agent.growth import record_feedback
+
+    path = record_feedback(
+        content,
+        category=data.get("category") or "用户纠正",
+    )
+
+    return jsonify({"ok": True, "path": path})
+
+
 # --------------------------------------------------
 # 启动
 # --------------------------------------------------

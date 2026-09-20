@@ -18,6 +18,7 @@ from datetime import datetime
 
 from tools.personal_db import search_documents
 from agent.llm import ask_llm_json
+from agent.growth import inject_rules
 from agent.task_manager import (
     get_task,
     update_task_status,
@@ -180,7 +181,7 @@ def _extract_repair_fields(core, user_input_text, personal_info=""):
 }}
 """
 
-    return ask_llm_json(prompt)
+    return ask_llm_json(inject_rules(prompt))
 
 
 def _build_repair_data(repair_fields):
@@ -360,7 +361,7 @@ def process_task(task_id):
     out.emit("正在让 AI 分析任务和个人资料的关系...")
 
     try:
-        analysis = ask_llm_json(prompt)
+        analysis = ask_llm_json(inject_rules(prompt))
     except ValueError as e:
         out.emit()
         out.emit("AI 返回的不是合法 JSON：")
@@ -735,7 +736,7 @@ COMPLETED
     out.emit("正在让 AI 判断任务下一步状态...")
 
     try:
-        decision = ask_llm_json(prompt)
+        decision = ask_llm_json(inject_rules(prompt))
     except ValueError as e:
         out.emit()
         out.emit("AI 返回的不是合法 JSON：")

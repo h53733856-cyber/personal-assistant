@@ -154,6 +154,17 @@ class TestApi(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.get_json()["ok"])
 
+    def test_feedback(self):
+        r = self.client.post(
+            "/api/feedback",
+            json={"content": "报修时间格式要统一", "category": "用户偏好"},
+        )
+
+        data = r.get_json()
+
+        self.assertTrue(data["ok"])
+        self.assertTrue(data["path"].endswith("feedback.md"))
+
 
 if __name__ == "__main__":
     unittest.main()
