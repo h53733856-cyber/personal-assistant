@@ -1,8 +1,7 @@
 import os
 import jieba
 
-
-DATA_DIR = "data/documents"
+import config
 
 
 def search_documents(question):
@@ -12,11 +11,11 @@ def search_documents(question):
     keywords = jieba.lcut(question)
     print("关键词：", keywords)
 
-    for filename in os.listdir(DATA_DIR):
+    for filename in os.listdir(config.DOCUMENTS_DIR):
         if not filename.endswith(".md"):
             continue
 
-        filepath = os.path.join(DATA_DIR, filename)
+        filepath = os.path.join(config.DOCUMENTS_DIR, filename)
 
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()

@@ -1,24 +1,25 @@
 import json
 import os
 
+import config
 
-TASK_FILE = "tasks/tasks.json"
+config.ensure_dirs()
 
 
 # 读取所有任务
 def load_tasks():
 
-    if not os.path.exists(TASK_FILE):
+    if not os.path.exists(config.TASK_FILE):
         return []
 
-    with open(TASK_FILE, "r", encoding="utf-8") as f:
+    with open(config.TASK_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 # 保存所有任务
 def save_tasks(tasks):
 
-    with open(TASK_FILE, "w", encoding="utf-8") as f:
+    with open(config.TASK_FILE, "w", encoding="utf-8") as f:
         json.dump(
             tasks,
             f,
