@@ -4,30 +4,30 @@
         "source": "email",
         "subject": "【通知】关于南京大学新版VPN平台正式上线的通知",
         "analysis": {
-            "type": "系统通知",
-            "core": "南京大学将于2026年9月16日上线新版VPN平台，旧版VPN停止服务，需按说明切换或安装客户端。",
-            "time": "2026年9月16日 4:00后（新版VPN正式上线；9月16日凌晨0点-4点暂停服务）",
+            "type": "系统升级通知",
+            "core": "南京大学VPN平台将于2026年9月16日上线新版，旧版停止服务，用户需安装新版客户端或更新接入地址。",
+            "time": "2026年9月16日4点后新版VPN正式上线；9月16日凌晨0点-4点VPN暂停服务",
             "deadline": null,
             "need_action": true,
-            "action": "旧版VPN用户卸载EasyConnect客户端，电脑端访问https://vpn.nju.edu.cn下载新版VPN客户端，移动端在应用商城搜索安装“aTrust”；新版VPN平台试用用户无需重复安装（电脑端在客户端“设置”-“接入地址”将地址切换为https://vpn.nju.edu.cn，移动端在登录界面将地址改为https://vpn.nju.edu.cn）。"
+            "action": "旧版VPN用户需卸载EasyConnect客户端，电脑端访问https://vpn.nju.edu.cn下载新版客户端，移动端在应用商城搜索“aTrust”安装；新版VPN试用用户电脑端在客户端设置中切换接入地址为https://vpn.nju.edu.cn，移动端在登录界面将地址改为https://vpn.nju.edu.cn（如已登录需先退出）。"
         },
         "status": "WAITING_CONFIRMATION",
-        "created_at": "2026-09-20T21:43:35",
+        "created_at": "2026-09-20T22:19:11",
         "history": [
             {
-                "at": "2026-09-20T21:43:35",
+                "at": "2026-09-20T22:19:11",
                 "from": null,
                 "to": "NEW",
                 "note": "创建任务"
             },
             {
-                "at": "2026-09-20T21:43:37",
+                "at": "2026-09-20T22:19:14",
                 "from": "NEW",
                 "to": "PROCESSING",
                 "note": "开始处理"
             },
             {
-                "at": "2026-09-20T21:43:39",
+                "at": "2026-09-20T22:19:15",
                 "from": "PROCESSING",
                 "to": "WAITING_CONFIRMATION",
                 "note": "已生成确认单，等待用户确认"
@@ -38,15 +38,15 @@
             "fields": [
                 {
                     "label": "任务内容",
-                    "value": "南京大学将于2026年9月16日上线新版VPN平台，旧版VPN停止服务，需按说明切换或安装客户端。"
+                    "value": "南京大学VPN平台将于2026年9月16日上线新版，旧版停止服务，用户需安装新版客户端或更新接入地址。"
                 },
                 {
                     "label": "需要做什么",
-                    "value": "旧版VPN用户卸载EasyConnect客户端，电脑端访问https://vpn.nju.edu.cn下载新版VPN客户端，移动端在应用商城搜索安装“aTrust”；新版VPN平台试用用户无需重复安装（电脑端在客户端“设置”-“接入地址”将地址切换为https://vpn.nju.edu.cn，移动端在登录界面将地址改为https://vpn.nju.edu.cn）。"
+                    "value": "旧版VPN用户需卸载EasyConnect客户端，电脑端访问https://vpn.nju.edu.cn下载新版客户端，移动端在应用商城搜索“aTrust”安装；新版VPN试用用户电脑端在客户端设置中切换接入地址为https://vpn.nju.edu.cn，移动端在登录界面将地址改为https://vpn.nju.edu.cn（如已登录需先退出）。"
                 }
             ],
             "warning": "确认后该任务将标记为完成；如果还没做完，请取消，稍后再处理。",
-            "created_at": "2026-09-20T21:43:39"
+            "created_at": "2026-09-20T22:19:15"
         },
         "result": null,
         "message_id": "<tencent_006E92CC25FB0DF3585F8407@qq.com>",
@@ -59,49 +59,35 @@
         "subject": "请于 2026-09-25 前提交课程作业材料",
         "analysis": {
             "type": "作业提交通知",
-            "core": "要求收件人在9月25日前登录教务系统提交《生成式软件工程》作业材料。",
-            "time": "2026-09-25",
+            "core": "要求收件人登录教务系统提交《生成式软件工程》作业材料。",
+            "time": null,
             "deadline": "2026-09-25",
             "need_action": true,
-            "action": "在9月25日之前登录教务系统提交《生成式软件工程》作业材料。"
+            "action": "登录教务系统提交《生成式软件工程》作业材料"
         },
-        "status": "WAITING_CONFIRMATION",
-        "created_at": "2026-09-20T21:43:35",
+        "status": "WAITING_USER",
+        "created_at": "2026-09-20T22:19:12",
         "history": [
             {
-                "at": "2026-09-20T21:43:35",
+                "at": "2026-09-20T22:19:12",
                 "from": null,
                 "to": "NEW",
                 "note": "创建任务"
             },
             {
-                "at": "2026-09-20T21:43:39",
+                "at": "2026-09-20T22:19:15",
                 "from": "NEW",
                 "to": "PROCESSING",
                 "note": "开始处理"
             },
             {
-                "at": "2026-09-20T21:43:40",
+                "at": "2026-09-20T22:19:16",
                 "from": "PROCESSING",
-                "to": "WAITING_CONFIRMATION",
-                "note": "已生成确认单，等待用户确认"
+                "to": "WAITING_USER",
+                "note": "缺少个人信息"
             }
         ],
-        "confirmation": {
-            "title": "请确认任务已完成",
-            "fields": [
-                {
-                    "label": "任务内容",
-                    "value": "要求收件人在9月25日前登录教务系统提交《生成式软件工程》作业材料。"
-                },
-                {
-                    "label": "需要做什么",
-                    "value": "在9月25日之前登录教务系统提交《生成式软件工程》作业材料。"
-                }
-            ],
-            "warning": "确认后该任务将标记为完成；如果还没做完，请取消，稍后再处理。",
-            "created_at": "2026-09-20T21:43:40"
-        },
+        "confirmation": null,
         "result": null,
         "message_id": "<tencent_02C7CBC52C273EB11C0D4F5F@qq.com>",
         "sender": "\" 杨佳璇 \" <241220077@smail.nju.edu.cn>",
@@ -112,30 +98,30 @@
         "source": "email",
         "subject": "交作业",
         "analysis": {
-            "type": "请求协助",
-            "core": "发件人请求收件人明天帮忙把作业交到机房。",
+            "type": "请求",
+            "core": "发件人请收件人明天帮忙把作业交到机房。",
             "time": "明天",
             "deadline": null,
             "need_action": true,
             "action": "明天帮发件人把作业交到机房"
         },
         "status": "WAITING_CONFIRMATION",
-        "created_at": "2026-09-20T21:43:36",
+        "created_at": "2026-09-20T22:19:13",
         "history": [
             {
-                "at": "2026-09-20T21:43:36",
+                "at": "2026-09-20T22:19:13",
                 "from": null,
                 "to": "NEW",
                 "note": "创建任务"
             },
             {
-                "at": "2026-09-20T21:43:40",
+                "at": "2026-09-20T22:19:16",
                 "from": "NEW",
                 "to": "PROCESSING",
                 "note": "开始处理"
             },
             {
-                "at": "2026-09-20T21:43:40",
+                "at": "2026-09-20T22:19:17",
                 "from": "PROCESSING",
                 "to": "WAITING_CONFIRMATION",
                 "note": "已生成确认单，等待用户确认"
@@ -146,7 +132,7 @@
             "fields": [
                 {
                     "label": "任务内容",
-                    "value": "发件人请求收件人明天帮忙把作业交到机房。"
+                    "value": "发件人请收件人明天帮忙把作业交到机房。"
                 },
                 {
                     "label": "需要做什么",
@@ -154,7 +140,7 @@
                 }
             ],
             "warning": "确认后该任务将标记为完成；如果还没做完，请取消，稍后再处理。",
-            "created_at": "2026-09-20T21:43:40"
+            "created_at": "2026-09-20T22:19:17"
         },
         "result": null,
         "message_id": "<tencent_0B419FB04C7BDD143ABD127A@qq.com>",
@@ -167,29 +153,29 @@
         "subject": "明天中午一起吃饭",
         "analysis": {
             "type": "约饭邀请",
-            "core": "杨佳璇邀请收件人明天中午十二点在四食堂门口见面一起吃饭",
+            "core": "杨佳璇约收件人明天中午十二点在四食堂门口一起吃饭。",
             "time": "明天中午十二点",
             "deadline": null,
             "need_action": true,
-            "action": "明天中午十二点在四食堂门口等杨佳璇，一起吃饭"
+            "action": "明天中午十二点在四食堂门口等杨佳璇。"
         },
         "status": "WAITING_CONFIRMATION",
-        "created_at": "2026-09-20T21:43:37",
+        "created_at": "2026-09-20T22:19:14",
         "history": [
             {
-                "at": "2026-09-20T21:43:37",
+                "at": "2026-09-20T22:19:14",
                 "from": null,
                 "to": "NEW",
                 "note": "创建任务"
             },
             {
-                "at": "2026-09-20T21:43:40",
+                "at": "2026-09-20T22:19:17",
                 "from": "NEW",
                 "to": "PROCESSING",
                 "note": "开始处理"
             },
             {
-                "at": "2026-09-20T21:43:41",
+                "at": "2026-09-20T22:19:18",
                 "from": "PROCESSING",
                 "to": "WAITING_CONFIRMATION",
                 "note": "已生成确认单，等待用户确认"
@@ -200,133 +186,19 @@
             "fields": [
                 {
                     "label": "任务内容",
-                    "value": "杨佳璇邀请收件人明天中午十二点在四食堂门口见面一起吃饭"
+                    "value": "杨佳璇约收件人明天中午十二点在四食堂门口一起吃饭。"
                 },
                 {
                     "label": "需要做什么",
-                    "value": "明天中午十二点在四食堂门口等杨佳璇，一起吃饭"
+                    "value": "明天中午十二点在四食堂门口等杨佳璇。"
                 }
             ],
             "warning": "确认后该任务将标记为完成；如果还没做完，请取消，稍后再处理。",
-            "created_at": "2026-09-20T21:43:41"
+            "created_at": "2026-09-20T22:19:18"
         },
         "result": null,
         "message_id": "<tencent_515EA0A32C58AE1D3A3C77CC@qq.com>",
         "sender": "\" 杨佳璇 \" <241220077@smail.nju.edu.cn>",
         "date": "Sun, 20 Sep 2026 20:52:08 +0800"
-    },
-    {
-        "id": 5,
-        "source": "user",
-        "subject": "明天五点到五食堂吃屎",
-        "analysis": {
-            "type": "提醒事项",
-            "core": "用户要求在明天五点提醒去五食堂",
-            "time": "明天五点",
-            "deadline": null,
-            "need_action": true,
-            "action": "明天五点提醒用户去五食堂"
-        },
-        "status": "COMPLETED",
-        "created_at": "2026-09-20T21:44:04",
-        "history": [
-            {
-                "at": "2026-09-20T21:44:04",
-                "from": null,
-                "to": "NEW",
-                "note": "创建任务"
-            },
-            {
-                "at": "2026-09-20T21:44:04",
-                "from": "NEW",
-                "to": "PROCESSING",
-                "note": "开始处理"
-            },
-            {
-                "at": "2026-09-20T21:44:05",
-                "from": "PROCESSING",
-                "to": "WAITING_CONFIRMATION",
-                "note": "已生成确认单，等待用户确认"
-            },
-            {
-                "at": "2026-09-20T21:44:31",
-                "from": "WAITING_CONFIRMATION",
-                "to": "EXECUTING",
-                "note": "用户已确认，开始执行"
-            },
-            {
-                "at": "2026-09-20T21:44:31",
-                "from": "EXECUTING",
-                "to": "COMPLETED",
-                "note": "模拟执行完成"
-            }
-        ],
-        "confirmation": {
-            "title": "请确认任务已完成",
-            "fields": [
-                {
-                    "label": "任务内容",
-                    "value": "用户要求在明天五点提醒去五食堂"
-                },
-                {
-                    "label": "需要做什么",
-                    "value": "明天五点提醒用户去五食堂"
-                }
-            ],
-            "warning": "确认后该任务将标记为完成；如果还没做完，请取消，稍后再处理。",
-            "created_at": "2026-09-20T21:44:05"
-        },
-        "result": {
-            "at": "2026-09-20T21:44:31",
-            "success": true,
-            "message": "模拟执行完成"
-        }
-    },
-    {
-        "id": 6,
-        "source": "user",
-        "subject": "空调坏了，需要维修",
-        "analysis": {
-            "type": "宿舍报修",
-            "core": "宿舍空调坏了，需要维修",
-            "need_action": true,
-            "action": "在 EHALL 提交宿舍报修申请"
-        },
-        "status": "WAITING_USER",
-        "created_at": "2026-09-20T22:11:52",
-        "history": [
-            {
-                "at": "2026-09-20T22:11:52",
-                "from": null,
-                "to": "NEW",
-                "note": "创建任务"
-            },
-            {
-                "at": "2026-09-20T22:11:52",
-                "from": "NEW",
-                "to": "PROCESSING",
-                "note": "开始处理"
-            },
-            {
-                "at": "2026-09-20T22:11:54",
-                "from": "PROCESSING",
-                "to": "WAITING_USER",
-                "note": "报修信息不完整"
-            }
-        ],
-        "confirmation": null,
-        "result": null,
-        "repair_data": {
-            "SJH": "",
-            "XMDM": "水电类/空调无法开启（电源故障）",
-            "QYDM": "",
-            "GZDD": "",
-            "DZ_FBSMKSSJ": "",
-            "DZ_FBSMJSSJ": "",
-            "GZMS": "宿舍空调坏了，需要维修",
-            "BZ": "",
-            "GZTP": "",
-            "DZ_SSDW": "1"
-        }
     }
 ]

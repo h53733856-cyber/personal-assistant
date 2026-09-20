@@ -23,6 +23,18 @@ from services.agent_service import (
     get_missing_repair_fields,
 )
 from services.email_service import check_emails
+from entrypoints.terminal import (
+    paint,
+    sep,
+    task_id,
+    status,
+    line_style,
+    LIGHT_BLUE,
+    LIGHT_PINK,
+    YELLOW,
+    LIGHT_GREEN,
+    GRAY,
+)
 
 # CLI 自己渲染事件，关闭处理器内部的终端打印
 processor.ECHO = False
@@ -30,7 +42,7 @@ processor.ECHO = False
 
 def _print_outcome(outcome):
     for line in outcome.events:
-        print(line)
+        print(line_style(line))
 
 
 def _ask(prompt):
@@ -49,6 +61,21 @@ VIEW_NAMES = {
     "pending": "未处理（未分析 + 待办）",
 }
 
+# 邮件状态 -> （颜色, emoji）
+EMAIL_STATUS_STYLE = {
+    "todo": (YELLOW, "⚠️"),
+    "done": (LIGHT_GREEN, "✅"),
+    "notice": (GRAY, "ℹ️"),
+    "unanalyzed": (LIGHT_BLUE, "🆕"),
+}
+
+
+def _email_status_label(s):
+    code, emoji = EMAIL_STATUS_STYLE.get(
+        s["status"], (GRAY, "▪️")
+    )
+    return paint(emoji + " " + s["status_label"], code)
+
 
 def email_console():
     """邮件控制台：拉取邮件 → 分析新邮件 → 显示每封状态 → 过滤/标记。"""
@@ -61,8 +88,8 @@ def email_console():
     )
 
     print()
-    print("======== 邮件服务 ========")
-    print("正在拉取最近邮件...")
+    print(sep("======== 📧 邮件服务 ========"))
+    print("📥 正在拉取最近邮件...")
 
     mails = fetch_recent_emails()
 
@@ -70,7 +97,7 @@ def email_console():
     events = check_emails(mails)
 
     for line in events:
-        print(line)
+        print(line_style(line))
 
     current_view = "all"
 
@@ -80,16 +107,17 @@ def email_console():
         shown = filter_email_statuses(statuses, current_view)
 
         print()
-        print("====== 邮件状态（%s）======" % VIEW_NAMES[current_view])
+        print(sep("====== 📬 邮件状态（%s）======" % VIEW_NAMES[current_view]))
 
         if not shown:
             print("（没有符合条件的邮件）")
 
         for i, s in enumerate(shown, 1):
-            print("[%d] %s" % (i, s["mail"]["subject"]))
+            print("%s %s" % (paint("[%d]" % i, LIGHT_BLUE, bold=True),
+                             s["mail"]["subject"]))
             print("    发件人：%s ｜ 时间：%s ｜ %s"
                   % (s["mail"]["sender"], s["mail"]["date"],
-                     s["status_label"]))
+                     _email_status_label(s)))
 
         print()
         cmd = _ask(
@@ -156,14 +184,14 @@ def email_console():
                 from services.email_service import rebuild_task_for_email
 
                 target = shown[idx - 1]
-                ok, message, task_id = rebuild_task_for_email(
+                ok, message, tid = rebuild_task_for_email(
                     target["mail"]["message_id"]
                 )
 
                 print(message)
 
-                if ok and task_id:
-                    _print_outcome(process_task(task_id))
+                if ok and tid:
+                    _print_outcome(process_task(tid))
 
             else:
                 print("序号超出范围。")
@@ -187,9 +215,9 @@ def repair_console():
     while True:
 
         print()
-        print("======== 宿舍报修 ========")
-        print("1. 发起新的报修")
-        print("2. 查看报修记录（过往报修及状态）")
+        print(sep("======== 🔧 宿舍报修 ========"))
+        print("1. 🆕 发起新的报修")
+        print("2. 📜 查看报修记录（过往报修及状态）")
         print("q. 返回")
         print()
 
@@ -235,7 +263,7 @@ def list_repair_records():
     repair_tasks.sort(key=lambda t: t["id"], reverse=True)
 
     print()
-    print("====== 报修记录（共 %d 条）======" % len(repair_tasks))
+    print(sep("====== 📜 报修记录（共 %d 条）======" % len(repair_tasks)))
 
     if not repair_tasks:
 
@@ -245,9 +273,10 @@ def list_repair_records():
     for t in repair_tasks:
 
         print()
-        print("任务 %d ｜ %s ｜ %s"
-              % (t["id"],
-                 REPAIR_STATUS_NAMES.get(t["status"], t["status"]),
+        print("任务 %s ｜ %s ｜ %s"
+              % (task_id(t["id"]),
+                 status(t["status"],
+                        REPAIR_STATUS_NAMES.get(t["status"], t["status"])),
                  t["subject"][:30]))
         print("  核心事项：%s" % (t.get("analysis") or {}).get("core", ""))
         print("  创建时间：%s" % t.get("created_at", ""))
@@ -263,7 +292,7 @@ def list_repair_records():
         result = t.get("result")
 
         if result:
-            print("  结果：%s" % result.get("message", ""))
+            print(line_style("  结果：%s" % result.get("message", "")))
 
     print()
     task_id_input = _ask("输入任务 ID 继续处理（q 返回）：")
@@ -272,13 +301,13 @@ def list_repair_records():
         return
 
     try:
-        task_id = int(task_id_input.strip())
+        tid = int(task_id_input.strip())
     except ValueError:
 
         print("无法识别你的输入。")
         return
 
-    task = task_manager.get_task(task_id)
+    task = task_manager.get_task(tid)
 
     if task is None:
 
@@ -289,18 +318,20 @@ def list_repair_records():
         "NEW", "PROCESSING", "WAITING_USER", "WAITING_CONFIRMATION"
     ):
 
-        drive_task(task_id)
+        drive_task(tid)
 
     else:
 
         # 终态：显示状态和结果
         print()
-        print("任务 %d 当前状态：%s"
-              % (task_id,
-                 REPAIR_STATUS_NAMES.get(task["status"], task["status"])))
+        print("任务 %s 当前状态：%s"
+              % (task_id(tid),
+                 status(task["status"],
+                        REPAIR_STATUS_NAMES.get(task["status"],
+                                                 task["status"]))))
 
         if task.get("result"):
-            print("结果：%s" % task["result"].get("message", ""))
+            print(line_style("结果：%s" % task["result"].get("message", "")))
 
 
 def data_console():
@@ -309,10 +340,10 @@ def data_console():
     while True:
 
         print()
-        print("======== 数据管理 ========")
-        print("1. 清空任务数据（tasks.json，任务 ID 从 1 重新开始）")
-        print("2. 清空邮件记录（processed.json，邮件会重新分析并重建任务）")
-        print("3. 更新 EHALL 字典码（报修类型/区域选项，需配置 Cookie）")
+        print(sep("======== 🗂️ 数据管理 ========"))
+        print("1. 🧹 清空任务数据（tasks.json，任务 ID 从 1 重新开始）")
+        print("2. 🧹 清空邮件记录（processed.json，邮件会重新分析并重建任务）")
+        print("3. 🔄 更新 EHALL 字典码（报修类型/区域选项，需配置 Cookie）")
         print("q. 返回")
         print()
 
@@ -373,15 +404,17 @@ def data_console():
 
 def list_tasks():
     print()
-    print("================================")
-    print("当前需要用户处理的任务：")
+    print(sep())
+    print("📥 当前需要用户处理的任务：")
 
     for task in task_manager.get_user_tasks():
         print()
-        print("任务 ID：", task["id"])
+        print("任务 ID：", task_id(task["id"]))
         print("任务主题：", task["subject"])
         print("任务内容：", task["analysis"]["core"])
-        print("任务状态：", task["status"])
+        print("任务状态：", status(task["status"],
+                             REPAIR_STATUS_NAMES.get(task["status"],
+                                                      task["status"])))
 
 
 def list_all_tasks():
@@ -390,7 +423,7 @@ def list_all_tasks():
     tasks = sorted(task_manager.load_tasks(), key=lambda t: t["id"])
 
     print()
-    print("====== 全部任务（共 %d 个）======" % len(tasks))
+    print(sep("====== 📋 全部任务（共 %d 个）======" % len(tasks)))
 
     if not tasks:
 
@@ -400,18 +433,20 @@ def list_all_tasks():
     for t in tasks:
 
         print()
-        print("任务 %d ｜ %s ｜ %s"
-              % (t["id"],
-                 REPAIR_STATUS_NAMES.get(t["status"], t["status"]),
+        print("任务 %s ｜ %s ｜ %s"
+              % (task_id(t["id"]),
+                 status(t["status"],
+                        REPAIR_STATUS_NAMES.get(t["status"], t["status"])),
                  t["subject"][:30]))
         print("  来源：%s ｜ 核心：%s"
-              % ("用户发起" if t.get("source") == "user" else "邮件触发",
+              % ("👤 用户发起" if t.get("source") == "user"
+                 else "📧 邮件触发",
                  (t.get("analysis") or {}).get("core", "")))
 
         result = t.get("result")
 
         if result:
-            print("  结果：%s" % result.get("message", ""))
+            print(line_style("  结果：%s" % result.get("message", "")))
 
     print()
     task_id_input = _ask("输入任务 ID 继续处理（q 返回）：")
@@ -420,13 +455,13 @@ def list_all_tasks():
         return
 
     try:
-        task_id = int(task_id_input.strip())
+        tid = int(task_id_input.strip())
     except ValueError:
 
         print("无法识别你的输入。")
         return
 
-    task = task_manager.get_task(task_id)
+    task = task_manager.get_task(tid)
 
     if task is None:
 
@@ -437,17 +472,19 @@ def list_all_tasks():
         "NEW", "PROCESSING", "WAITING_USER", "WAITING_CONFIRMATION"
     ):
 
-        drive_task(task_id)
+        drive_task(tid)
 
     else:
 
         print()
-        print("任务 %d 当前状态：%s"
-              % (task_id,
-                 REPAIR_STATUS_NAMES.get(task["status"], task["status"])))
+        print("任务 %s 当前状态：%s"
+              % (task_id(tid),
+                 status(task["status"],
+                        REPAIR_STATUS_NAMES.get(task["status"],
+                                                 task["status"]))))
 
         if task.get("result"):
-            print("结果：%s" % task["result"].get("message", ""))
+            print(line_style("结果：%s" % task["result"].get("message", "")))
 
 
 def task_console():
@@ -456,9 +493,9 @@ def task_console():
     while True:
 
         print()
-        print("======== 任务中心 ========")
-        print("1. 待处理任务（需要你补充/确认的）")
-        print("2. 全部任务（含已完成/失败/取消）")
+        print(sep("======== 📋 任务中心 ========"))
+        print("1. 📥 待处理任务（需要你补充/确认的）")
+        print("2. 🗂️ 全部任务（含已完成/失败/取消）")
         print("q. 返回")
         print()
 
@@ -487,7 +524,7 @@ def create_task_from_text(text):
     from agent.user_agent import analyze_user_request
 
     print()
-    print("正在分析你的请求...")
+    print("🧠 正在分析你的请求...")
 
     analysis = analyze_user_request(text)
 
@@ -502,7 +539,7 @@ def create_task_from_text(text):
     task = task_manager.create_user_task(text, analysis)
 
     print()
-    print("已创建任务：", task["id"])
+    print("✅ 已创建任务：", task_id(task["id"]))
     print()
 
     _print_outcome(process_task(task["id"]))
@@ -527,29 +564,29 @@ def drive_task(task_id):
             print("任务不存在。")
             return
 
-        status = task["status"]
+        task_status = task["status"]
 
         # ==============================
         # 等待用户补充信息：原地询问
         # ==============================
 
-        if status == "WAITING_USER":
+        if task_status == "WAITING_USER":
 
             print()
-            print("这个任务正在等待你的信息。")
+            print("💬 这个任务正在等待你的信息。")
 
             missing = get_missing_repair_fields(task)
 
             if missing:
 
                 print()
-                print("还缺少以下信息：")
+                print(paint("⚠️ 还缺少以下信息：", YELLOW))
 
                 for name in missing:
-                    print("- " + name)
+                    print(paint("- " + name, YELLOW))
 
             print()
-            user_input = _ask("请直接输入补充信息（按 W 返回菜单）：")
+            user_input = _ask("✍️ 请直接输入补充信息（按 W 返回菜单）：")
 
             if user_input is None or user_input.strip().lower() == "w":
 
@@ -565,32 +602,33 @@ def drive_task(task_id):
         # 等待用户确认：先展示确认单
         # ==============================
 
-        if status == "WAITING_CONFIRMATION":
+        if task_status == "WAITING_CONFIRMATION":
 
             print()
-            print("这个任务需要你的确认。")
+            print("⚠️ 这个任务需要你的确认。")
 
             confirmation = task.get("confirmation")
 
             if confirmation:
 
                 print()
-                print("================================")
-                print(confirmation["title"])
-                print("================================")
+                print(sep())
+                print(paint(confirmation["title"], LIGHT_PINK, bold=True))
+                print(sep())
 
                 for field in confirmation["fields"]:
-                    print(field["label"] + "：" + str(field["value"]))
+                    print(field["label"] + "："
+                          + paint(str(field["value"]), LIGHT_BLUE))
 
                 print()
-                print("注意：" + confirmation["warning"])
-                print("================================")
+                print(paint("注意：" + confirmation["warning"], YELLOW))
+                print(sep())
 
             else:
 
                 print("任务内容：", task["analysis"]["core"])
 
-            confirm_input = _ask("请输入“确认”或“取消”（按 W 返回菜单）：")
+            confirm_input = _ask("✅ 确认 ｜ ❌ 取消（按 W 返回菜单）：")
 
             if confirm_input == "确认":
 
@@ -614,10 +652,10 @@ def drive_task(task_id):
         # 还没开始处理：自动开始
         # ==============================
 
-        if status == "NEW":
+        if task_status == "NEW":
 
             print()
-            print("这个任务还没有开始处理。")
+            print("🚀 这个任务还没有开始处理。")
 
             _print_outcome(process_task(task_id))
 
@@ -636,7 +674,9 @@ def drive_task(task_id):
         # ==============================
 
         print()
-        print("当前任务状态：", status)
+        print("当前任务状态：", status(
+            task_status,
+            REPAIR_STATUS_NAMES.get(task_status, task_status)))
         return
 
 
@@ -698,13 +738,13 @@ def interactive_loop():
             continue
 
         try:
-            task_id = int(task_id_input)
+            tid = int(task_id_input)
         except ValueError:
 
             print("无法识别你的输入。")
             continue
 
-        task = task_manager.get_task(task_id)
+        task = task_manager.get_task(tid)
 
         if task is None:
 
@@ -713,7 +753,7 @@ def interactive_loop():
 
         # 交给 drive_task 连续引导：缺信息原地补、确认单先展示，
         # 按 W 回到任务列表
-        drive_task(task_id)
+        drive_task(tid)
 
 
 def main_menu():
@@ -722,14 +762,14 @@ def main_menu():
     while True:
 
         print()
-        print("========================================")
-        print("个人助手")
-        print("========================================")
-        print("1. 邮件服务：检查 smail，AI 分析并自动创建任务")
-        print("2. 宿舍报修：发起报修 / 查看报修记录")
-        print("3. 任务中心：待办任务 / 全部任务")
-        print("4. 数据管理：清空任务数据 / 清空邮件记录")
-        print("q. 退出")
+        print(sep())
+        print("🤖 个人助手")
+        print(sep())
+        print("1. 📧 邮件服务：检查 smail，AI 分析并自动创建任务")
+        print("2. 🔧 宿舍报修：发起报修 / 查看报修记录")
+        print("3. 📋 任务中心：待办任务 / 全部任务")
+        print("4. 🗂️ 数据管理：清空任务数据 / 清空邮件记录")
+        print("q. 👋 退出")
         print()
 
         choice = _ask("请选择功能：")
