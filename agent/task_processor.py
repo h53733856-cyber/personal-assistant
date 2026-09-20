@@ -1,7 +1,5 @@
-import json
-
 from tools.personal_db import search_documents
-from agent.llm import ask_llm
+from agent.llm import ask_llm_json
 from agent.task_manager import (
     get_task,
     update_task_status,
@@ -127,14 +125,12 @@ def process_task(task_id):
     print()
     print("正在让 AI 分析任务和个人资料的关系...")
 
-    response = ask_llm(prompt)
-
     try:
-        analysis = json.loads(response)
-    except json.JSONDecodeError:
+        analysis = ask_llm_json(prompt)
+    except ValueError as e:
         print()
         print("AI 返回的不是合法 JSON：")
-        print(response)
+        print(e)
 
         update_task_status(task_id, "WAITING_USER")
         return
@@ -292,14 +288,12 @@ def process_task(task_id):
 }}
 """
 
-        repair_response = ask_llm(repair_prompt)
-
         try:
-            repair_fields = json.loads(repair_response)
-        except json.JSONDecodeError:
+            repair_fields = ask_llm_json(repair_prompt)
+        except ValueError as e:
             print()
             print("AI 返回的宿舍报修字段不是合法 JSON：")
-            print(repair_response)
+            print(e)
 
             update_task_status(task_id, "WAITING_USER")
             return
@@ -501,16 +495,12 @@ def continue_task(task_id, user_input):
         print()
         print("正在让 AI 提取宿舍报修字段...")
 
-        repair_response = ask_llm(repair_prompt)
-
-        repair_response = repair_response.strip()
-
         try:
-            repair_fields = json.loads(repair_response)
-        except json.JSONDecodeError:
+            repair_fields = ask_llm_json(repair_prompt)
+        except ValueError as e:
             print()
             print("AI 返回的宿舍报修字段不是合法 JSON：")
-            print(repair_response)
+            print(e)
 
             update_task_status(task_id, "WAITING_USER")
             return
@@ -645,16 +635,12 @@ COMPLETED
     print()
     print("正在让 AI 判断任务下一步状态...")
 
-    result = ask_llm(prompt)
-
-    result = result.strip()
-
     try:
-        decision = json.loads(result)
-    except json.JSONDecodeError:
+        decision = ask_llm_json(prompt)
+    except ValueError as e:
         print()
         print("AI 返回的不是合法 JSON：")
-        print(result)
+        print(e)
 
         update_task_status(task_id, "WAITING_USER")
         return

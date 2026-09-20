@@ -1,9 +1,8 @@
-import json
-
-from agent.llm import ask_llm
+from agent.llm import ask_llm_json
 
 
 def analyze_email(email):
+    """分析一封邮件，返回 JSON 字典（type/core/time/deadline/need_action/action）。"""
 
     prompt = f"""
 你是我的个人助手。
@@ -57,10 +56,4 @@ def analyze_email(email):
 只返回 JSON，不要添加 Markdown，不要添加解释。
 """
 
-    result = ask_llm(prompt)
-
-    # 去掉模型可能意外添加的空格或换行
-    result = result.strip()
-
-    # 将 JSON 字符串转换成 Python 字典
-    return json.loads(result)
+    return ask_llm_json(prompt)
