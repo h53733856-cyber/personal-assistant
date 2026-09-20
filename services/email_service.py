@@ -18,7 +18,12 @@ from datetime import datetime
 import config
 from tools.email import get_recent_emails
 from agent.email_agent import analyze_email
-from agent.task_manager import create_task, task_exists
+from agent.task_manager import (
+    create_task,
+    task_exists,
+    get_tasks_by_message_id,
+    update_task_status,
+)
 
 
 def _now():
@@ -141,7 +146,86 @@ def mark_email_done(message_id, done=True):
 
     _save_processed(processed)
 
+    # 标记"已做完"时，把对应的进行中任务也标记完成，
+    # 保证邮件状态和任务状态一致
+    if done:
+        _close_pending_tasks(message_id)
+
     return True
+
+
+def _close_pending_tasks(message_id):
+    """把某封邮件对应的进行中任务标记为完成。"""
+
+    for task in get_tasks_by_message_id(message_id):
+
+        if task["status"] in (
+            "NEW", "PROCESSING", "WAITING_USER",
+            "WAITING_CONFIRMATION", "EXECUTING",
+        ):
+            update_task_status(
+                task["id"],
+                "COMPLETED",
+                note="用户在邮件控制台标记已完成",
+            )
+
+
+def rebuild_task_for_email(message_id):
+    """为某封邮件重建任务：
+
+    - 没有任务：用收据里保存的分析结果创建任务
+    - 任务已结束（COMPLETED/FAILED/CANCELLED）：重新打开为 NEW
+    - 有进行中的任务：不重复创建
+
+    返回 (ok, message, task_id)。
+    """
+
+    processed = _load_processed()
+
+    entry = processed.get(message_id)
+
+    if entry is None:
+        return False, "该邮件没有分析记录", None
+
+    analysis = entry.get("analysis")
+
+    if not analysis or not analysis.get("need_action"):
+        return False, "该邮件不需要行动，不需要任务", None
+
+    tasks = get_tasks_by_message_id(message_id)
+
+    pending = [
+        t for t in tasks
+        if t["status"] in (
+            "NEW", "PROCESSING", "WAITING_USER",
+            "WAITING_CONFIRMATION", "EXECUTING",
+        )
+    ]
+
+    if pending:
+        return False, "该邮件已有进行中的任务（ID %d，状态 %s）" % (
+            pending[0]["id"],
+            pending[0]["status"],
+        ), pending[0]["id"]
+
+    if tasks:
+
+        task = tasks[-1]
+        update_task_status(
+            task["id"],
+            "NEW",
+            note="用户从邮件控制台重新打开",
+        )
+        return True, "任务 %d 已重新打开" % task["id"], task["id"]
+
+    task = create_task({
+        "message_id": message_id,
+        "subject": entry.get("subject", ""),
+        "sender": entry.get("sender", ""),
+        "date": entry.get("date", ""),
+    }, analysis)
+
+    return True, "已从邮件记录创建任务 %d" % task["id"], task["id"]
 
 
 def clear_processed_emails():
@@ -222,6 +306,8 @@ def check_emails(emails=None):
         processed[message_id] = {
             "analyzed_at": _now(),
             "subject": mail["subject"],
+            "sender": mail["sender"],
+            "date": mail["date"],
             "analysis": result,
         }
 

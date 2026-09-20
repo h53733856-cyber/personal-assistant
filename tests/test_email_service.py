@@ -207,5 +207,75 @@ class TestEmailStatus(unittest.TestCase):
         self.assertEqual(es._load_processed(), {})
 
 
+class TestRebuildTask(unittest.TestCase):
+
+    def setUp(self):
+        self._ctx = TempDataDir()
+        self._ctx.__enter__()
+
+    def tearDown(self):
+        self._ctx.__exit__(None, None, None)
+
+    def _analyze_action_mail(self):
+        mail = fake_mail(1, action=True)
+        with mock.patch("services.email_service.analyze_email",
+                        return_value=fake_analysis(True)):
+            es.check_emails([mail])
+        return mail
+
+    def test_rebuild_creates_task_from_receipt(self):
+        mail = self._analyze_action_mail()
+        # 模拟任务被清空
+        tm.clear_all_tasks()
+
+        ok, message, task_id = es.rebuild_task_for_email(mail["message_id"])
+
+        self.assertTrue(ok)
+        task = tm.get_task(task_id)
+        self.assertEqual(task["message_id"], mail["message_id"])
+        self.assertEqual(task["status"], "NEW")
+
+        # 再次重建：已有进行中的任务，不重复创建
+        ok2, _, _ = es.rebuild_task_for_email(mail["message_id"])
+        self.assertFalse(ok2)
+
+    def test_rebuild_reopens_terminal_task(self):
+        mail = self._analyze_action_mail()
+        task_id = tm.get_tasks_by_message_id(mail["message_id"])[0]["id"]
+        tm.update_task_status(task_id, "COMPLETED")
+
+        ok, message, reopened_id = es.rebuild_task_for_email(
+            mail["message_id"]
+        )
+
+        self.assertTrue(ok)
+        self.assertEqual(reopened_id, task_id)
+        self.assertEqual(tm.get_task(task_id)["status"], "NEW")
+
+    def test_rebuild_no_receipt(self):
+        ok, _, task_id = es.rebuild_task_for_email("never-seen")
+        self.assertFalse(ok)
+        self.assertIsNone(task_id)
+
+    def test_rebuild_notice_email_rejected(self):
+        mail = fake_mail(1, action=False)
+        with mock.patch("services.email_service.analyze_email",
+                        return_value=fake_analysis(False)):
+            es.check_emails([mail])
+
+        ok, _, _ = es.rebuild_task_for_email(mail["message_id"])
+        self.assertFalse(ok)
+
+    def test_mark_done_closes_pending_task(self):
+        """邮件标记已做完时，对应的进行中任务同步完成。"""
+        mail = self._analyze_action_mail()
+        task = tm.get_tasks_by_message_id(mail["message_id"])[0]
+        tm.update_task_status(task["id"], "WAITING_USER")
+
+        es.mark_email_done(mail["message_id"], done=True)
+
+        self.assertEqual(tm.get_task(task["id"])["status"], "COMPLETED")
+
+
 if __name__ == "__main__":
     unittest.main()

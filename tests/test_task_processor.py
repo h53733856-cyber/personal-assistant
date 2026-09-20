@@ -131,6 +131,35 @@ class TestProcessTask(unittest.TestCase):
         self.assertTrue(out.ok)
         self.assertEqual(tm.get_task(task["id"])["status"], "COMPLETED")
 
+    def test_need_action_task_waits_for_user_completion(self):
+        """需要用户亲自行动的任务（交作业等）不能被 Agent 自动完成，
+        必须等用户确认"已完成"。"""
+        task = tm.create_task(
+            {
+                "message_id": "m2", "subject": "交作业",
+                "sender": "a@b", "date": "2026-09-20",
+            },
+            {
+                "type": "事务办理",
+                "core": "交作业",
+                "need_action": True,
+                "action": "登录教务系统提交作业",
+            },
+        )
+
+        with mock.patch("agent.task_processor.ask_llm_json",
+                        return_value=INFO_NO_PERSONAL):
+            out = tp.process_task(task["id"])
+
+        saved = tm.get_task(task["id"])
+
+        self.assertTrue(out.ok)
+        self.assertEqual(saved["status"], "WAITING_CONFIRMATION")
+        self.assertEqual(
+            saved["confirmation"]["title"],
+            "请确认任务已完成",
+        )
+
     def test_missing_info_waiting_user(self):
         task = create_repair_task()
 

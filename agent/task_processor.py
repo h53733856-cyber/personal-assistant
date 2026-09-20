@@ -443,6 +443,14 @@ def process_task(task_id):
     is_repair = task["analysis"].get("type") == "宿舍报修"
 
     if analysis["need_personal_info"] is False and not is_repair:
+
+        # 需要用户亲自行动的任务（交作业、提交材料等），
+        # Agent 不能替用户完成，必须等用户确认"已完成"
+        if task["analysis"].get("need_action"):
+            out.emit()
+            out.emit("该任务需要你亲自完成，Agent 不能代替你完成。")
+            return request_confirmation(task_id, mode="complete")
+
         update_task_status(task_id, "COMPLETED", note="无需个人信息，任务完成")
 
         out.emit()
@@ -525,12 +533,16 @@ def process_task(task_id):
 # 生成确认单（等待用户确认）
 # --------------------------------------------------
 
-def request_confirmation(task_id):
+def request_confirmation(task_id, mode="execute"):
     """生成并保存确认单快照，任务进入 WAITING_CONFIRMATION。
 
     确认单里包含将要执行的操作、关键字段和可能后果。
     入口层（CLI / Web）必须在询问用户之前展示确认单，
     用户明确同意后才能调用 confirm_task()。
+
+    mode:
+    - "execute"：即将执行某个操作（默认）
+    - "complete"：任务需要用户亲自完成，请用户确认已完成
     """
 
     out = Outcome()
@@ -570,18 +582,36 @@ def request_confirmation(task_id):
 
     else:
 
-        confirmation = {
-            "title": "即将执行任务",
-            "fields": [
-                {"label": "任务内容", "value": core},
-                {
-                    "label": "具体操作",
-                    "value": str(task["analysis"].get("action") or ""),
-                },
-            ],
-            "warning": "确认后 Agent 将执行该任务，可能产生实际后果。",
-            "created_at": _now(),
-        }
+        if mode == "complete":
+
+            confirmation = {
+                "title": "请确认任务已完成",
+                "fields": [
+                    {"label": "任务内容", "value": core},
+                    {
+                        "label": "需要做什么",
+                        "value": str(task["analysis"].get("action") or ""),
+                    },
+                ],
+                "warning": "确认后该任务将标记为完成；"
+                           "如果还没做完，请取消，稍后再处理。",
+                "created_at": _now(),
+            }
+
+        else:
+
+            confirmation = {
+                "title": "即将执行任务",
+                "fields": [
+                    {"label": "任务内容", "value": core},
+                    {
+                        "label": "具体操作",
+                        "value": str(task["analysis"].get("action") or ""),
+                    },
+                ],
+                "warning": "确认后 Agent 将执行该任务，可能产生实际后果。",
+                "created_at": _now(),
+            }
 
     # 保存确认单快照，UI 之后只读快照，不受后续修改影响
     update_task_data(task_id, "confirmation", confirmation)

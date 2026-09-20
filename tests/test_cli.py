@@ -168,6 +168,27 @@ class TestEmailConsole(unittest.TestCase):
 
         fake_mark.assert_not_called()
 
+    def test_console_rebuild_task(self):
+        """t 1 重建任务并自动处理。"""
+        with mock.patch("builtins.input", side_effect=["t 1", "q"]):
+            with contextlib.ExitStack() as stack:
+                for p in self._patch_console():
+                    stack.enter_context(p)
+                fake_rebuild = stack.enter_context(
+                    mock.patch(
+                        "services.email_service.rebuild_task_for_email",
+                        return_value=(True, "任务 1 已重新打开", 1),
+                    )
+                )
+                fake_process = stack.enter_context(
+                    mock.patch("entrypoints.cli.process_task",
+                               return_value=tp.Outcome(ok=True, events=[]))
+                )
+                cli.email_console()
+
+        fake_rebuild.assert_called_once_with("m1")
+        fake_process.assert_called_once_with(1)
+
 
 class TestDataConsole(unittest.TestCase):
 

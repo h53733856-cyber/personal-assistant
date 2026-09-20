@@ -94,7 +94,8 @@ def email_console():
         print()
         cmd = _ask(
             "1 待办 ｜ 2 已完成 ｜ 3 未处理 ｜ a 全部 ｜ "
-            "d 序号 标记已做完 ｜ u 序号 取消标记 ｜ q 返回："
+            "d 序号 标记已做完 ｜ u 序号 取消标记 ｜ "
+            "t 序号 重建任务 ｜ q 返回："
         )
 
         if cmd is None or cmd.strip().lower() == "q":
@@ -139,6 +140,30 @@ def email_console():
                     print("标记成功。" if parts[0] == "d" else "已取消标记。")
                 else:
                     print("该邮件还没有分析记录，无法标记。")
+
+            else:
+                print("序号超出范围。")
+
+            continue
+
+        # t 序号：重建 / 重新打开该邮件的任务
+        if len(parts) == 2 and parts[0] == "t" and parts[1].isdigit():
+
+            idx = int(parts[1])
+
+            if 1 <= idx <= len(shown):
+
+                from services.email_service import rebuild_task_for_email
+
+                target = shown[idx - 1]
+                ok, message, task_id = rebuild_task_for_email(
+                    target["mail"]["message_id"]
+                )
+
+                print(message)
+
+                if ok and task_id:
+                    _print_outcome(process_task(task_id))
 
             else:
                 print("序号超出范围。")

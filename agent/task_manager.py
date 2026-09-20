@@ -173,6 +173,15 @@ def create_user_task(subject, analysis):
         return task
 
 
+# 返回某封邮件对应的所有任务
+def get_tasks_by_message_id(message_id):
+
+    return [
+        t for t in load_tasks()
+        if t.get("message_id") == message_id
+    ]
+
+
 # 判断某封邮件是否已经创建过任务
 def task_exists(message_id):
 
