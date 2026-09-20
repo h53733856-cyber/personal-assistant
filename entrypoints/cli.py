@@ -173,6 +173,136 @@ def email_console():
         print("无法识别你的输入。")
 
 
+REPAIR_STATUS_NAMES = {
+    "NEW": "新建", "PROCESSING": "处理中",
+    "WAITING_USER": "等你补充", "WAITING_CONFIRMATION": "等你确认",
+    "EXECUTING": "执行中", "COMPLETED": "已完成",
+    "CANCELLED": "已取消", "FAILED": "失败",
+}
+
+
+def repair_console():
+    """宿舍报修中心：发起新报修 / 查看报修记录。"""
+
+    while True:
+
+        print()
+        print("======== 宿舍报修 ========")
+        print("1. 发起新的报修")
+        print("2. 查看报修记录（过往报修及状态）")
+        print("q. 返回")
+        print()
+
+        choice = _ask("请选择：")
+
+        if choice is None or choice == "q":
+            return
+
+        if choice == "1":
+
+            text = _ask(
+                "请描述报修内容（例如：我的宿舍卫生间水龙头坏了，需要维修）："
+            )
+
+            if not text or not text.strip():
+
+                print("没有输入内容，返回报修菜单。")
+                continue
+
+            task = create_task_from_text(text.strip())
+
+            if task:
+                # 缺什么信息直接在这里补充，按 W 返回报修菜单
+                drive_task(task["id"])
+
+        elif choice == "2":
+
+            list_repair_records()
+
+        else:
+
+            print("无法识别你的输入。")
+
+
+def list_repair_records():
+    """展示过往报修任务及状态，可以选择继续处理。"""
+
+    repair_tasks = [
+        t for t in task_manager.load_tasks()
+        if (t.get("analysis") or {}).get("type") == "宿舍报修"
+    ]
+
+    repair_tasks.sort(key=lambda t: t["id"], reverse=True)
+
+    print()
+    print("====== 报修记录（共 %d 条）======" % len(repair_tasks))
+
+    if not repair_tasks:
+
+        print("（还没有报修记录）")
+        return
+
+    for t in repair_tasks:
+
+        print()
+        print("任务 %d ｜ %s ｜ %s"
+              % (t["id"],
+                 REPAIR_STATUS_NAMES.get(t["status"], t["status"]),
+                 t["subject"][:30]))
+        print("  核心事项：%s" % (t.get("analysis") or {}).get("core", ""))
+        print("  创建时间：%s" % t.get("created_at", ""))
+
+        repair_data = t.get("repair_data")
+
+        if repair_data and repair_data.get("SJH"):
+            print("  手机号：%s ｜ 地点：%s ｜ 上门时间：%s"
+                  % (repair_data.get("SJH"),
+                     repair_data.get("GZDD"),
+                     repair_data.get("DZ_FBSMKSSJ")))
+
+        result = t.get("result")
+
+        if result:
+            print("  结果：%s" % result.get("message", ""))
+
+    print()
+    task_id_input = _ask("输入任务 ID 继续处理（q 返回）：")
+
+    if task_id_input is None or task_id_input.strip().lower() == "q":
+        return
+
+    try:
+        task_id = int(task_id_input.strip())
+    except ValueError:
+
+        print("无法识别你的输入。")
+        return
+
+    task = task_manager.get_task(task_id)
+
+    if task is None:
+
+        print("任务不存在。")
+        return
+
+    if task["status"] in (
+        "NEW", "PROCESSING", "WAITING_USER", "WAITING_CONFIRMATION"
+    ):
+
+        drive_task(task_id)
+
+    else:
+
+        # 终态：显示状态和结果
+        print()
+        print("任务 %d 当前状态：%s"
+              % (task_id,
+                 REPAIR_STATUS_NAMES.get(task["status"], task["status"])))
+
+        if task.get("result"):
+            print("结果：%s" % task["result"].get("message", ""))
+
+
 def data_console():
     """数据管理：清空任务 / 清空邮件记录（都需要明确确认）。"""
 
@@ -481,7 +611,7 @@ def main_menu():
         print("个人助手")
         print("========================================")
         print("1. 邮件服务：检查 smail，AI 分析并自动创建任务")
-        print("2. 宿舍报修：发起 EHALL 报修任务")
+        print("2. 宿舍报修：发起报修 / 查看报修记录")
         print("3. 任务中心：查看任务、补充信息、确认执行")
         print("4. 数据管理：清空任务数据 / 清空邮件记录")
         print("q. 退出")
@@ -504,21 +634,7 @@ def main_menu():
 
         elif choice == "2":
 
-            text = _ask(
-                "请描述报修内容（例如：我的宿舍卫生间水龙头坏了，需要维修）："
-            )
-
-            if not text or not text.strip():
-
-                print("没有输入内容，返回菜单。")
-
-            else:
-
-                task = create_task_from_text(text.strip())
-
-                if task:
-                    # 缺什么信息直接在这里补充，按 W 返回菜单
-                    drive_task(task["id"])
+            repair_console()
 
         elif choice == "3":
 

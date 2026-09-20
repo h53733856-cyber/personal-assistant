@@ -3,6 +3,7 @@ entrypoints.cli 的行为测试（LLM 全部 mock）。
 """
 
 import contextlib
+import io
 import unittest
 from unittest import mock
 
@@ -190,6 +191,70 @@ class TestEmailConsole(unittest.TestCase):
         fake_process.assert_called_once_with(1)
 
 
+class TestRepairConsole(unittest.TestCase):
+
+    def setUp(self):
+        self._ctx = TempDataDir()
+        self._ctx.__enter__()
+        self._echo = tp.ECHO
+        tp.ECHO = False
+
+    def tearDown(self):
+        tp.ECHO = self._echo
+        self._ctx.__exit__(None, None, None)
+
+    def _repair_task(self, status):
+        task = tm.create_user_task("报修任务", ANALYSIS)
+        tm.update_task_status(task["id"], status)
+        return task["id"]
+
+    def test_new_repair_creates_and_drives(self):
+        with mock.patch(
+            "builtins.input",
+            side_effect=["1", "空调坏了，需要维修", "w", "q"],
+        ), mock.patch("entrypoints.cli.create_task_from_text",
+                      return_value={"id": 1}), \
+           mock.patch("entrypoints.cli.drive_task") as fake:
+            cli.repair_console()
+
+        fake.assert_called_once_with(1)
+
+    def test_records_lists_repair_tasks(self):
+        """查看报修记录：显示任务和状态，q 返回。"""
+        self._repair_task("WAITING_CONFIRMATION")
+        self._repair_task("FAILED")
+
+        buf = io.StringIO()
+
+        with mock.patch("builtins.input", side_effect=["2", "q", "q"]), \
+             contextlib.redirect_stdout(buf):
+            cli.repair_console()
+
+        output = buf.getvalue()
+        self.assertIn("报修记录（共 2 条）", output)
+        self.assertIn("等你确认", output)
+        self.assertIn("失败", output)
+
+    def test_records_empty(self):
+        buf = io.StringIO()
+
+        with mock.patch("builtins.input", side_effect=["2", "q"]), \
+             contextlib.redirect_stdout(buf):
+            cli.repair_console()
+
+        self.assertIn("还没有报修记录", buf.getvalue())
+
+    def test_records_select_task_drives(self):
+        tid = self._repair_task("WAITING_USER")
+
+        with mock.patch("builtins.input",
+                        side_effect=["2", str(tid), "w", "q"]), \
+             mock.patch("entrypoints.cli.drive_task") as fake:
+            cli.repair_console()
+
+        fake.assert_called_once_with(tid)
+
+
 class TestDataConsole(unittest.TestCase):
 
     def setUp(self):
@@ -368,15 +433,6 @@ class TestMainMenu(unittest.TestCase):
 
         fake.assert_called_once_with()
 
-    def test_menu_choice_2_repair(self):
-        with mock.patch(
-            "builtins.input",
-            side_effect=["2", "我的宿舍卫生间水龙头坏了，需要维修", "q"],
-        ), mock.patch("entrypoints.cli.create_task_from_text") as fake:
-            cli.main_menu()
-
-        fake.assert_called_once_with("我的宿舍卫生间水龙头坏了，需要维修")
-
     def test_menu_choice_3_tasks(self):
         with mock.patch("builtins.input", side_effect=["3", "q"]), \
              mock.patch("entrypoints.cli.list_tasks"), \
@@ -385,18 +441,12 @@ class TestMainMenu(unittest.TestCase):
 
         fake.assert_called_once_with()
 
-    def test_menu_choice_2_creates_and_drives_task(self):
-        """创建任务后原地进入补充循环，而不是返回菜单。"""
-
-        with mock.patch(
-            "builtins.input",
-            side_effect=["2", "空调坏了，需要维修", "w", "q"],
-        ), mock.patch("entrypoints.cli.create_task_from_text",
-                      return_value={"id": 1}), \
-           mock.patch("entrypoints.cli.drive_task") as fake:
+    def test_menu_choice_2_opens_repair_console(self):
+        with mock.patch("builtins.input", side_effect=["2", "q", "q"]), \
+             mock.patch("entrypoints.cli.repair_console") as fake:
             cli.main_menu()
 
-        fake.assert_called_once_with(1)
+        fake.assert_called_once_with()
 
     def test_menu_unknown_choice(self):
         with mock.patch("builtins.input", side_effect=["x", "q"]):

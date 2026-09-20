@@ -91,7 +91,7 @@
             "need_action": true,
             "action": "登录教务系统提交《生成式软件工程》作业材料"
         },
-        "status": "WAITING_USER",
+        "status": "COMPLETED",
         "created_at": "2026-09-20T19:55:44",
         "history": [
             {
@@ -111,13 +111,22 @@
                 "from": "PROCESSING",
                 "to": "WAITING_USER",
                 "note": "缺少个人信息"
+            },
+            {
+                "at": "2026-09-20T20:32:33",
+                "from": "WAITING_USER",
+                "to": "COMPLETED",
+                "note": "AI 判断下一步状态"
             }
         ],
         "confirmation": null,
         "result": null,
         "message_id": "<tencent_02C7CBC52C273EB11C0D4F5F@qq.com>",
         "sender": "\" 杨佳璇 \" <241220077@smail.nju.edu.cn>",
-        "date": "Sun, 20 Sep 2026 19:20:21 +0800"
+        "date": "Sun, 20 Sep 2026 19:20:21 +0800",
+        "user_inputs": [
+            "已完成"
+        ]
     },
     {
         "id": 4,
@@ -131,7 +140,7 @@
             "need_action": true,
             "action": "帮发件人把作业交到机房"
         },
-        "status": "WAITING_USER",
+        "status": "COMPLETED",
         "created_at": "2026-09-20T19:59:47",
         "history": [
             {
@@ -169,6 +178,12 @@
                 "from": "PROCESSING",
                 "to": "WAITING_USER",
                 "note": "缺少个人信息"
+            },
+            {
+                "at": "2026-09-20T20:31:50",
+                "from": "WAITING_USER",
+                "to": "COMPLETED",
+                "note": "用户在邮件控制台标记已完成"
             }
         ],
         "confirmation": null,

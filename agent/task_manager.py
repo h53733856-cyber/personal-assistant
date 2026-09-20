@@ -257,9 +257,47 @@ def update_task_status(task_id, status, note=None):
 
                 save_tasks(tasks)
 
+                # 同步对应邮件的完成标记（任务完成 → 邮件也显示已完成）
+                if old_status != status:
+                    _sync_email_status(task, status)
+
                 return True
 
     return False
+
+
+def _sync_email_status(task, status):
+    """任务状态变化时，同步对应邮件的"已完成"标记。
+
+    - COMPLETED / CANCELLED：邮件标记为已完成
+    - NEW / PROCESSING / WAITING_USER / WAITING_CONFIRMATION / EXECUTING：
+      邮件取消已完成标记（任务重新打开时邮件回到待办）
+    - FAILED：不动（事情还没办成，邮件保持待办）
+    """
+
+    message_id = task.get("message_id")
+
+    if not message_id:
+        return
+
+    if status in ("COMPLETED", "CANCELLED"):
+        done = True
+    elif status in (
+        "NEW", "PROCESSING", "WAITING_USER",
+        "WAITING_CONFIRMATION", "EXECUTING",
+    ):
+        done = False
+    else:
+        return
+
+    # 延迟导入避免循环依赖（email_service 依赖 task_manager）
+    from services.email_service import mark_email_done
+
+    try:
+        mark_email_done(message_id, done=done)
+    except Exception:
+        # 同步失败不影响任务状态本身
+        pass
 
 
 def update_task_data(task_id, key, value):

@@ -277,5 +277,64 @@ class TestRebuildTask(unittest.TestCase):
         self.assertEqual(tm.get_task(task["id"])["status"], "COMPLETED")
 
 
+class TestTaskEmailSync(unittest.TestCase):
+    """任务状态变化 → 邮件完成标记同步（反向同步）。"""
+
+    def setUp(self):
+        self._ctx = TempDataDir()
+        self._ctx.__enter__()
+
+    def tearDown(self):
+        self._ctx.__exit__(None, None, None)
+
+    def _analyze_action_mail(self):
+        mail = fake_mail(1, action=True)
+        with mock.patch("services.email_service.analyze_email",
+                        return_value=fake_analysis(True)):
+            es.check_emails([mail])
+        return mail
+
+    def test_task_completed_marks_email_done(self):
+        mail = self._analyze_action_mail()
+        task = tm.get_tasks_by_message_id(mail["message_id"])[0]
+        tm.update_task_status(task["id"], "WAITING_USER")
+
+        # 任务中心里用户处理完任务 → 任务 COMPLETED → 邮件自动显示已完成
+        tm.update_task_status(task["id"], "COMPLETED", note="用户已完成")
+
+        statuses = es.get_email_statuses([mail])
+        self.assertEqual(statuses[0]["status"], "done")
+
+    def test_task_reopened_unmarks_email(self):
+        mail = self._analyze_action_mail()
+        task = tm.get_tasks_by_message_id(mail["message_id"])[0]
+        tm.update_task_status(task["id"], "COMPLETED")
+
+        # 重新打开任务 → 邮件回到待办
+        tm.update_task_status(task["id"], "NEW", note="重新打开")
+
+        statuses = es.get_email_statuses([mail])
+        self.assertEqual(statuses[0]["status"], "todo")
+
+    def test_task_cancelled_marks_email_done(self):
+        mail = self._analyze_action_mail()
+        task = tm.get_tasks_by_message_id(mail["message_id"])[0]
+
+        tm.update_task_status(task["id"], "CANCELLED", note="用户取消")
+
+        statuses = es.get_email_statuses([mail])
+        self.assertEqual(statuses[0]["status"], "done")
+
+    def test_task_failed_keeps_email_pending(self):
+        """FAILED（事情没办成）时邮件保持待办。"""
+        mail = self._analyze_action_mail()
+        task = tm.get_tasks_by_message_id(mail["message_id"])[0]
+        tm.update_task_status(task["id"], "WAITING_USER")
+        tm.update_task_status(task["id"], "FAILED", note="提交失败")
+
+        statuses = es.get_email_statuses([mail])
+        self.assertEqual(statuses[0]["status"], "todo")
+
+
 if __name__ == "__main__":
     unittest.main()
