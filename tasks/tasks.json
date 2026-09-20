@@ -132,7 +132,7 @@
             "need_action": true,
             "action": "填写宿舍报修申请并提交。"
         },
-        "status": "EXECUTING",
+        "status": "FAILED",
         "user_inputs": [
             "我住在仙林校区某宿舍楼某房间，水龙头漏水，手机号是13800000000，我今天晚上19:00到21:00方便上门维修。",
             "我住在仙林校区某宿舍楼某房间，水龙头漏水，手机号是13800000000，我今天晚上19:00到21:00方便上门维修。",
@@ -152,7 +152,14 @@
         },
         "source": "email",
         "created_at": "2026-09-20",
-        "history": [],
+        "history": [
+            {
+                "at": "2026-09-20T18:56:12",
+                "from": "EXECUTING",
+                "to": "FAILED",
+                "note": "启动恢复：上次执行未完成"
+            }
+        ],
         "confirmation": null,
         "result": null
     },
