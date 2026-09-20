@@ -7,9 +7,11 @@ LLM 与个人资料检索全部使用 mock，不消耗 API，
 重点回归：continue_task 必须根据用户补充重新生成 repair_data。
 """
 
+import os
 import unittest
 from unittest import mock
 
+import httpx
 import agent.task_manager as tm
 import agent.task_processor as tp
 
@@ -432,19 +434,33 @@ class TestConfirmTask(unittest.TestCase):
         out = tp.confirm_task(task["id"])
         self.assertFalse(out.ok)
 
-    def test_repair_submit_failure_goes_failed(self):
-        """EHALL 提交仍为模拟实现：失败进入 FAILED 终态，不再卡在 EXECUTING。"""
+    def test_repair_submit_dry_run_completed(self):
+        """默认 EHALL_DRY_RUN=1：模拟提交成功 → COMPLETED。"""
         task = self._task_waiting_confirmation()
 
         out = tp.confirm_task(task["id"])
 
         saved = tm.get_task(task["id"])
 
+        self.assertTrue(out.ok)
+        self.assertEqual(saved["status"], "COMPLETED")
+        self.assertIn("模拟提交", saved["result"]["message"])
+        self.assertTrue(saved["result"]["success"])
+
+    def test_repair_submit_real_mode_failure_goes_failed(self):
+        """EHALL_DRY_RUN=0 且真实提交失败 → FAILED 终态，不卡死。"""
+        task = self._task_waiting_confirmation()
+
+        with mock.patch.dict(os.environ, {"EHALL_DRY_RUN": "0"}), \
+             mock.patch("tools.ehall.httpx.post",
+                        side_effect=httpx.ConnectError("连接失败")):
+            out = tp.confirm_task(task["id"])
+
+        saved = tm.get_task(task["id"])
+
         self.assertFalse(out.ok)
         self.assertEqual(saved["status"], "FAILED")
-        self.assertIn("尚未接入", saved["result"]["message"])
         self.assertFalse(saved["result"]["success"])
-        # 执行结果被记录，重启后可以追溯
         self.assertIn("任务状态：FAILED", out.events)
 
     def test_generic_task_completed(self):

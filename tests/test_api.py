@@ -131,10 +131,10 @@ class TestApi(unittest.TestCase):
 
         data = r.get_json()
 
-        # EHALL 提交仍为模拟实现：失败进入 FAILED 并记录结果
-        self.assertFalse(data["ok"])
-        self.assertEqual(data["task"]["status"], "FAILED")
-        self.assertFalse(data["task"]["result"]["success"])
+        # 默认 EHALL_DRY_RUN=1：模拟提交成功 → COMPLETED
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["task"]["status"], "COMPLETED")
+        self.assertIn("模拟提交", data["task"]["result"]["message"])
 
     def test_cancel(self):
         task = tm.create_user_task("报修", ANALYSIS)

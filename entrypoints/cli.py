@@ -312,6 +312,7 @@ def data_console():
         print("======== 数据管理 ========")
         print("1. 清空任务数据（tasks.json，任务 ID 从 1 重新开始）")
         print("2. 清空邮件记录（processed.json，邮件会重新分析并重建任务）")
+        print("3. 更新 EHALL 字典码（报修类型/区域选项，需配置 Cookie）")
         print("q. 返回")
         print()
 
@@ -347,6 +348,23 @@ def data_console():
 
             else:
                 print("已取消。")
+
+        elif choice == "3":
+
+            from tools.ehall import fetch_repair_codes
+
+            print("正在抓取 EHALL 字典码...")
+
+            try:
+                codes = fetch_repair_codes(force=True)
+                xm = len(codes.get("XMDM", {}))
+                qy = len(codes.get("QYDM", {}))
+                print("字典更新成功：报修类型 %d 项，报修区域 %d 项。"
+                      % (xm, qy))
+            except Exception as e:
+                print("字典更新失败：%s" % e)
+                print("请确认 .env 里配置了 EHALL_COOKIE"
+                      "（浏览器登录 EHALL 后粘贴）。")
 
         else:
 

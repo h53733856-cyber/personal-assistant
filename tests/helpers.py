@@ -16,6 +16,7 @@ _ORIGINALS = {
     "EMAILS_DIR": config.EMAILS_DIR,
     "PROCESSED_EMAILS_FILE": config.PROCESSED_EMAILS_FILE,
     "RULES_DIR": config.RULES_DIR,
+    "EHALL_CODES_FILE": config.EHALL_CODES_FILE,
 }
 
 
@@ -31,6 +32,7 @@ class TempDataDir:
         config.EMAILS_DIR = self._tmp / "emails"
         config.PROCESSED_EMAILS_FILE = self._tmp / "emails" / "processed.json"
         config.RULES_DIR = self._tmp / "rules"
+        config.EHALL_CODES_FILE = self._tmp / "ehall_codes.json"
 
         for d in (config.TASKS_DIR, config.DOCUMENTS_DIR,
                   config.EMAILS_DIR, config.RULES_DIR):

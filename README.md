@@ -77,6 +77,8 @@ python -m venv .venv
 DEEPSEEK_API_KEY=...
 SMAIL_EMAIL=xxx@smail.nju.edu.cn
 SMAIL_PASSWORD=...       # 企业邮箱客户端专用密码
+EHALL_COOKIE=...         # 浏览器登录 ehall.nju.edu.cn 后粘贴 Cookie（可选）
+EHALL_DRY_RUN=1          # 1 模拟提交（默认），0 真实提交
 ```
 
 ## 使用
@@ -189,10 +191,11 @@ EXECUTING 中中断的任务由调度器启动恢复（成功→COMPLETED，否�
 
 ## 安全
 
-- `.env`（API key、邮箱密码）不入 git
+- `.env`（API key、邮箱密码、Cookie）不入 git
 - 高风险操作（提交表单、发送邮件、退课、取消申请、删除数据）
   永远先展示确认单，用户明确确认后才执行
-- EHALL 真实提交默认未接入（`tools/ehall.py` 的 `submit_repair` 返回模拟结果）
+- EHALL 真实提交默认关闭（`EHALL_DRY_RUN=1`）：确认后返回
+  "模拟提交成功"，不产生真实报修单；设 `EHALL_DRY_RUN=0` 才真实提交
 
 ## 成长规则
 
@@ -200,9 +203,20 @@ EXECUTING 中中断的任务由调度器启动恢复（成功→COMPLETED，否�
 用户纠正通过 CLI `feedback` 或手机端"记录反馈"写入 `feedback.md`；
 也可以手工新建规则文件。规则文件用 git 管理变化。
 
+## EHALL 真实提交（阶段 11）
+
+真实提交逻辑已接入，但需要两步准备：
+
+1. **配置 Cookie**：浏览器登录 ehall.nju.edu.cn → F12 复制 Cookie →
+   粘贴到 .env 的 `EHALL_COOKIE`
+2. **更新字典码**：菜单 4 数据管理 → 3 更新 EHALL 字典码，
+   程序抓取报修表单选项并缓存到 data/ehall_codes.json
+
+提交时 `EHALL_DRY_RUN=1`（默认）只模拟；确认没问题后设
+`EHALL_DRY_RUN=0` 才会真正提交。字典码匹配不上的字段会在提交前
+明确报错，不会提交错误数据。
+
 ## 开发说明
 
 - 每个阶段的重构都有独立 commit（`git log --oneline` 可查看），
   基线标签为 `refactor-baseline`
-- 阶段 11（EHALL 真实提交）尚未实施：接入前需要补充 XMDM/QYDM
-  字段字典码映射与登录态，并保留 dry-run 开关

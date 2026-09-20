@@ -25,6 +25,9 @@ PROCESSED_EMAILS_FILE = EMAILS_DIR / "processed.json"
 # 成长规则（用户纠正 / 偏好 / 成功经验）
 RULES_DIR = PROJECT_ROOT / "rules"
 
+# EHALL 字典码缓存（报修类型 XMDM / 报修区域 QYDM 的选项代码）
+EHALL_CODES_FILE = PROJECT_ROOT / "data" / "ehall_codes.json"
+
 # 邮件拉取间隔（秒），调度器与 Web 后台线程使用
 EMAIL_POLL_INTERVAL = int(os.getenv("PA_POLL_INTERVAL", "300"))
 
