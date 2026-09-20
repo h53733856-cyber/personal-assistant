@@ -94,6 +94,63 @@ class TestTaskStorage(unittest.TestCase):
         tm.create_task(fake_email(), {"core": "x"})
         self.assertFalse(config.TASK_FILE.with_suffix(".tmp").exists())
 
+    def test_new_task_has_model_fields(self):
+        task = tm.create_task(fake_email(), {"core": "x"})
+
+        self.assertEqual(task["source"], "email")
+        self.assertIsNotNone(task["created_at"])
+        self.assertEqual(len(task["history"]), 1)
+        self.assertEqual(task["history"][0]["to"], "NEW")
+        self.assertIsNone(task["confirmation"])
+        self.assertIsNone(task["result"])
+
+    def test_legacy_task_is_normalized(self):
+        """旧格式任务（没有新字段）读取时自动补齐。"""
+        legacy = [{
+            "id": 1,
+            "message_id": "old-1",
+            "subject": "旧任务",
+            "sender": "a@b.c",
+            "date": "2026-09-01",
+            "analysis": {"core": "x"},
+            "status": "NEW",
+        }]
+        tm.save_tasks(legacy)
+
+        task = tm.get_task(1)
+
+        self.assertEqual(task["source"], "email")
+        self.assertEqual(task["created_at"], "2026-09-01")
+        self.assertEqual(task["history"], [])
+        self.assertIsNone(task["confirmation"])
+        self.assertIsNone(task["result"])
+
+    def test_id_not_reused_after_delete(self):
+        t1 = tm.create_task(fake_email(1), {"core": "x"})
+        t2 = tm.create_task(fake_email(2), {"core": "y"})
+
+        # 模拟删除任务 2
+        remaining = [t for t in tm.load_tasks() if t["id"] != t2["id"]]
+        tm.save_tasks(remaining)
+
+        t3 = tm.create_task(fake_email(3), {"core": "z"})
+        self.assertEqual(t3["id"], 3)
+        self.assertIsNotNone(t1)
+
+    def test_history_records_transitions(self):
+        task = tm.create_task(fake_email(), {"core": "x"})
+        tm.update_task_status(task["id"], "PROCESSING", note="开始处理")
+        tm.update_task_status(task["id"], "WAITING_USER", note="缺少信息")
+
+        history = tm.get_task(task["id"])["history"]
+
+        self.assertEqual(len(history), 3)
+        self.assertEqual(history[1]["from"], "NEW")
+        self.assertEqual(history[1]["to"], "PROCESSING")
+        self.assertEqual(history[1]["note"], "开始处理")
+        self.assertEqual(history[2]["from"], "PROCESSING")
+        self.assertEqual(history[2]["to"], "WAITING_USER")
+
 
 if __name__ == "__main__":
     unittest.main()
