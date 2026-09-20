@@ -84,8 +84,22 @@ SMAIL_PASSWORD=...       # 企业邮箱客户端专用密码
 ### 命令行
 
 ```bash
-.venv/bin/python main.py                    # 检查邮件 + 任务交互（默认）
-.venv/bin/python main.py email              # 只检查邮件
+.venv/bin/python main.py                    # 主菜单：选 1 邮件 / 2 报修 / 3 任务中心
+```
+
+主菜单：
+
+```
+1. 邮件服务：检查 smail，AI 分析并自动创建任务
+2. 宿舍报修：发起 EHALL 报修任务
+3. 任务中心：查看任务、补充信息、确认执行
+q. 退出
+```
+
+也可以跳过菜单直接运行某个功能：
+
+```bash
+.venv/bin/python main.py email              # 直接运行邮件服务
 .venv/bin/python main.py tasks              # 列出任务
 .venv/bin/python main.py new 我要报修宿舍水龙头
 .venv/bin/python main.py feedback 报修时间格式要统一 [--commit]

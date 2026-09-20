@@ -32,6 +32,15 @@ def _print_outcome(outcome):
         print(line)
 
 
+def _ask(prompt):
+    """input() 的包装：管道输入结束（EOF）时返回 None，不会抛异常。"""
+
+    try:
+        return input(prompt)
+    except EOFError:
+        return None
+
+
 def run_email_check():
     print()
     print("Personal Assistant started!")
@@ -120,20 +129,20 @@ def interactive_loop():
 
         print()
 
-        task_id_input = input(
-            "输入任务 ID 处理；输入 new 创建新任务；输入 q 退出："
+        task_id_input = _ask(
+            "输入任务 ID 处理；输入 new 创建新任务；输入 q 返回："
         )
 
-        if task_id_input == "q":
+        if task_id_input is None or task_id_input == "q":
 
             print("退出任务交互。")
             return
 
         if task_id_input == "new":
 
-            text = input("请输入你的请求：")
+            text = _ask("请输入你的请求：")
 
-            if text.strip():
+            if text and text.strip():
                 create_task_from_text(text.strip())
 
             continue
@@ -161,7 +170,10 @@ def interactive_loop():
             print()
             print("这个任务正在等待你的信息。")
 
-            user_input = input("请输入你的回复：")
+            user_input = _ask("请输入你的回复：")
+
+            if not user_input:
+                continue
 
             _print_outcome(continue_task(task_id, user_input))
 
@@ -195,7 +207,7 @@ def interactive_loop():
 
                 print("任务内容：", task["analysis"]["core"])
 
-            confirm_input = input("请输入“确认”或“取消”：")
+            confirm_input = _ask("请输入“确认”或“取消”：")
 
             if confirm_input == "确认":
 
@@ -232,17 +244,63 @@ def interactive_loop():
             print("当前任务状态：", task["status"])
 
 
+def main_menu():
+    """主菜单：一个命令进来，选择要用的功能，选哪个自动运行哪个。"""
+
+    while True:
+
+        print()
+        print("========================================")
+        print("个人助手")
+        print("========================================")
+        print("1. 邮件服务：检查 smail，AI 分析并自动创建任务")
+        print("2. 宿舍报修：发起 EHALL 报修任务")
+        print("3. 任务中心：查看任务、补充信息、确认执行")
+        print("q. 退出")
+        print()
+
+        choice = _ask("请选择功能：")
+
+        if choice is None or choice == "q":
+
+            print("再见！")
+            return
+
+        if choice == "1":
+
+            run_email_check()
+
+        elif choice == "2":
+
+            text = _ask(
+                "请描述报修内容（例如：我的宿舍卫生间水龙头坏了，需要维修）："
+            )
+
+            if text and text.strip():
+                create_task_from_text(text.strip())
+            else:
+                print("没有输入内容，返回菜单。")
+
+        elif choice == "3":
+
+            list_tasks()
+            interactive_loop()
+
+        else:
+
+            print("无法识别你的输入，请重新选择。")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Personal Assistant 命令行入口")
 
     parser.add_argument(
         "command",
         nargs="?",
-        default="interact",
-        choices=["interact", "email", "tasks", "new", "feedback"],
-        help="interact=检查邮件并进入任务交互（默认）；"
-             "email=只检查邮件；tasks=列出任务；new=创建新任务；"
-             "feedback=记录一条用户纠正/偏好",
+        default="menu",
+        choices=["menu", "email", "tasks", "new", "feedback"],
+        help="menu=功能主菜单（默认）；email=直接运行邮件服务；"
+             "tasks=列出任务；new=直接创建任务；feedback=记录一条用户纠正/偏好",
     )
     parser.add_argument("text", nargs="*", help="new / feedback 命令的内容")
     parser.add_argument(
@@ -253,7 +311,9 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command == "email":
+    if args.command == "menu":
+        main_menu()
+    elif args.command == "email":
         run_email_check()
     elif args.command == "tasks":
         list_tasks()
@@ -269,11 +329,6 @@ def main():
             print("请提供反馈内容，例如：python main.py feedback 报修时间格式要统一")
             return
         record_feedback_from_cli(text, commit=args.commit)
-    else:
-        # 默认：与旧 main.py 一致——先检查邮件，再进入任务交互
-        run_email_check()
-        list_tasks()
-        interactive_loop()
 
 
 if __name__ == "__main__":
