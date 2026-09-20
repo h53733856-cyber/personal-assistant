@@ -44,6 +44,115 @@ def _save_processed(processed):
     os.replace(tmp, config.PROCESSED_EMAILS_FILE)
 
 
+# 邮件状态的中文标签
+STATUS_LABELS = {
+    "unanalyzed": "未分析",
+    "todo": "待办：需要你行动",
+    "done": "已完成",
+    "notice": "通知类，无需行动",
+}
+
+
+def fetch_recent_emails():
+    """拉取最近邮件（不分析），供邮件控制台展示。"""
+
+    return get_recent_emails()
+
+
+def _status_of(processed, mail):
+    """判断一封邮件的处理状态。"""
+
+    entry = processed.get(mail["message_id"])
+
+    if entry is None:
+        return "unanalyzed"
+
+    analysis = entry.get("analysis")
+
+    if analysis is None:
+        # 收据回溯（历史上建过任务）：默认视为待办，等用户标记完成
+        return "done" if entry.get("done") else "todo"
+
+    if analysis.get("need_action"):
+        return "done" if entry.get("done") else "todo"
+
+    return "notice"
+
+
+def get_email_statuses(emails):
+    """返回邮件状态列表（mail / status / 中文标签 / 分析结果）。"""
+
+    processed = _load_processed()
+
+    statuses = []
+
+    for mail in emails:
+
+        entry = processed.get(mail["message_id"])
+        status = _status_of(processed, mail)
+
+        statuses.append({
+            "mail": mail,
+            "status": status,
+            "status_label": STATUS_LABELS[status],
+            "analysis": entry.get("analysis") if entry else None,
+            "done_at": entry.get("done_at") if entry else None,
+        })
+
+    return statuses
+
+
+def filter_email_statuses(statuses, view):
+    """按视图过滤邮件状态：
+
+    - todo:    已分析、需要行动、还没做
+    - done:    用户标记已做完
+    - pending: 未分析 + 待办（所有还没处理完的）
+    - all:     全部
+    """
+
+    if view == "todo":
+        return [s for s in statuses if s["status"] == "todo"]
+
+    if view == "done":
+        return [s for s in statuses if s["status"] == "done"]
+
+    if view == "pending":
+        return [s for s in statuses if s["status"] in ("unanalyzed", "todo")]
+
+    return statuses
+
+
+def mark_email_done(message_id, done=True):
+    """把某封已分析邮件的"已完成"标记设为 done。
+
+    只有分析过的邮件（收据存在）才能标记。
+    """
+
+    processed = _load_processed()
+
+    entry = processed.get(message_id)
+
+    if entry is None:
+        return False
+
+    entry["done"] = bool(done)
+    entry["done_at"] = _now() if done else None
+
+    _save_processed(processed)
+
+    return True
+
+
+def clear_processed_emails():
+    """清空邮件处理收据：所有邮件下次检查时会重新分析。"""
+
+    if os.path.exists(config.PROCESSED_EMAILS_FILE):
+        os.remove(config.PROCESSED_EMAILS_FILE)
+
+    return True
+
+
 def check_emails(emails=None):
     """处理最近邮件，返回用户可见的事件列表。
 

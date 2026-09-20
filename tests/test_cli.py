@@ -2,9 +2,11 @@
 entrypoints.cli 的行为测试（LLM 全部 mock）。
 """
 
+import contextlib
 import unittest
 from unittest import mock
 
+import config
 import agent.task_manager as tm
 import agent.task_processor as tp
 import entrypoints.cli as cli
@@ -71,6 +73,159 @@ class TestCli(unittest.TestCase):
 
         # 用户补充的信息被交给 continue_task
         fake_continue.assert_called_once_with(task["id"], "补充的信息")
+
+
+class TestEmailConsole(unittest.TestCase):
+
+    def setUp(self):
+        self._ctx = TempDataDir()
+        self._ctx.__enter__()
+        self._echo = tp.ECHO
+        tp.ECHO = False
+
+    def tearDown(self):
+        tp.ECHO = self._echo
+        self._ctx.__exit__(None, None, None)
+
+    MAILS = [
+        {
+            "message_id": "m1", "subject": "行动邮件",
+            "sender": "a@b", "date": "2026-09-20", "body": "x",
+        },
+        {
+            "message_id": "m2", "subject": "通知邮件",
+            "sender": "a@b", "date": "2026-09-20", "body": "x",
+        },
+    ]
+
+    STATUSES = [
+        {
+            "mail": MAILS[0], "status": "todo",
+            "status_label": "待办：需要你行动",
+            "analysis": {"need_action": True}, "done_at": None,
+        },
+        {
+            "mail": MAILS[1], "status": "notice",
+            "status_label": "通知类，无需行动",
+            "analysis": {"need_action": False}, "done_at": None,
+        },
+    ]
+
+    def _patch_console(self, statuses=None):
+        return (
+            mock.patch("services.email_service.fetch_recent_emails",
+                       return_value=self.MAILS),
+            mock.patch("entrypoints.cli.check_emails", return_value=[]),
+            mock.patch("services.email_service.get_email_statuses",
+                       return_value=statuses or self.STATUSES),
+            mock.patch("services.email_service.filter_email_statuses",
+                       side_effect=lambda s, view: s),
+        )
+
+    def test_console_quit(self):
+        with mock.patch("builtins.input", side_effect=["q"]):
+            with contextlib.ExitStack() as stack:
+                for p in self._patch_console():
+                    stack.enter_context(p)
+                cli.email_console()
+
+    def test_console_mark_done(self):
+        """d 1 把第一封标记为已做完。"""
+        with mock.patch("builtins.input", side_effect=["d 1", "q"]):
+            with contextlib.ExitStack() as stack:
+                for p in self._patch_console():
+                    stack.enter_context(p)
+                fake_mark = stack.enter_context(
+                    mock.patch("services.email_service.mark_email_done",
+                               return_value=True)
+                )
+                cli.email_console()
+
+        fake_mark.assert_called_once_with("m1", done=True)
+
+    def test_console_unmark(self):
+        with mock.patch("builtins.input", side_effect=["u 1", "q"]):
+            with contextlib.ExitStack() as stack:
+                for p in self._patch_console():
+                    stack.enter_context(p)
+                fake_mark = stack.enter_context(
+                    mock.patch("services.email_service.mark_email_done",
+                               return_value=True)
+                )
+                cli.email_console()
+
+        fake_mark.assert_called_once_with("m1", done=False)
+
+    def test_console_mark_out_of_range(self):
+        with mock.patch("builtins.input", side_effect=["d 9", "q"]):
+            with contextlib.ExitStack() as stack:
+                for p in self._patch_console():
+                    stack.enter_context(p)
+                fake_mark = stack.enter_context(
+                    mock.patch("services.email_service.mark_email_done")
+                )
+                cli.email_console()
+
+        fake_mark.assert_not_called()
+
+
+class TestDataConsole(unittest.TestCase):
+
+    def setUp(self):
+        self._ctx = TempDataDir()
+        self._ctx.__enter__()
+        self._echo = tp.ECHO
+        tp.ECHO = False
+
+    def tearDown(self):
+        tp.ECHO = self._echo
+        self._ctx.__exit__(None, None, None)
+
+    def test_clear_tasks_confirmed(self):
+        tm.create_user_task("任务", ANALYSIS)
+
+        with mock.patch("builtins.input", side_effect=["1", "y", "q"]):
+            cli.data_console()
+
+        self.assertEqual(tm.load_tasks(), [])
+        # 新任务 ID 从 1 重新开始
+        task = tm.create_user_task("新任务", ANALYSIS)
+        self.assertEqual(task["id"], 1)
+
+    def test_clear_tasks_cancelled(self):
+        tm.create_user_task("任务", ANALYSIS)
+
+        with mock.patch("builtins.input", side_effect=["1", "n", "q"]):
+            cli.data_console()
+
+        self.assertEqual(len(tm.load_tasks()), 1)
+
+    def test_clear_emails_confirmed(self):
+        with mock.patch("builtins.input", side_effect=["2", "y", "q"]):
+            cli.data_console()
+
+        self.assertFalse(config.PROCESSED_EMAILS_FILE.exists())
+
+    def test_clear_emails_cancelled(self):
+        # 先造一条邮件记录
+        from services.email_service import check_emails
+        with mock.patch("services.email_service.analyze_email",
+                        return_value={
+                            "type": "通知", "core": "x",
+                            "time": None, "deadline": None,
+                            "need_action": False, "action": None,
+                        }):
+            check_emails([{
+                "message_id": "m1", "subject": "s", "sender": "a",
+                "date": "d", "body": "b",
+            }])
+
+        self.assertTrue(config.PROCESSED_EMAILS_FILE.exists())
+
+        with mock.patch("builtins.input", side_effect=["2", "n", "q"]):
+            cli.data_console()
+
+        self.assertTrue(config.PROCESSED_EMAILS_FILE.exists())
 
 
 class TestDriveTask(unittest.TestCase):
@@ -180,7 +335,14 @@ class TestMainMenu(unittest.TestCase):
 
     def test_menu_choice_1_email(self):
         with mock.patch("builtins.input", side_effect=["1", "q"]), \
-             mock.patch("entrypoints.cli.run_email_check") as fake:
+             mock.patch("entrypoints.cli.email_console") as fake:
+            cli.main_menu()
+
+        fake.assert_called_once_with()
+
+    def test_menu_choice_4_data(self):
+        with mock.patch("builtins.input", side_effect=["4", "q", "q"]), \
+             mock.patch("entrypoints.cli.data_console") as fake:
             cli.main_menu()
 
         fake.assert_called_once_with()

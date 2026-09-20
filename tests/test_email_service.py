@@ -8,6 +8,7 @@ services.email_service 的单元测试。
 import unittest
 from unittest import mock
 
+import config
 import agent.task_manager as tm
 import services.email_service as es
 
@@ -124,6 +125,86 @@ class TestEmailService(unittest.TestCase):
             es.check_emails([mail])
 
         self.assertEqual(fake2.call_count, 0)
+
+
+class TestEmailStatus(unittest.TestCase):
+
+    def setUp(self):
+        self._ctx = TempDataDir()
+        self._ctx.__enter__()
+
+    def tearDown(self):
+        self._ctx.__exit__(None, None, None)
+
+    def _analyze(self, i, action):
+        mail = fake_mail(i, action=action)
+        with mock.patch("services.email_service.analyze_email",
+                        return_value=fake_analysis(action)):
+            es.check_emails([mail])
+        return mail
+
+    def test_statuses(self):
+        action_mail = self._analyze(1, True)
+        notice_mail = self._analyze(2, False)
+
+        statuses = es.get_email_statuses([action_mail, notice_mail])
+
+        self.assertEqual(statuses[0]["status"], "todo")
+        self.assertEqual(statuses[1]["status"], "notice")
+
+        unanalyzed = fake_mail(3, action=False)
+        statuses = es.get_email_statuses([unanalyzed])
+        self.assertEqual(statuses[0]["status"], "unanalyzed")
+
+    def test_mark_done_and_undo(self):
+        mail = self._analyze(1, True)
+
+        self.assertTrue(es.mark_email_done(mail["message_id"], done=True))
+        statuses = es.get_email_statuses([mail])
+        self.assertEqual(statuses[0]["status"], "done")
+        self.assertIsNotNone(statuses[0]["done_at"])
+
+        self.assertTrue(es.mark_email_done(mail["message_id"], done=False))
+        statuses = es.get_email_statuses([mail])
+        self.assertEqual(statuses[0]["status"], "todo")
+
+    def test_mark_unanalyzed_email_fails(self):
+        self.assertFalse(es.mark_email_done("never-seen", done=True))
+
+    def test_filter_views(self):
+        action_mail = self._analyze(1, True)
+        notice_mail = self._analyze(2, False)
+        unanalyzed = fake_mail(3, action=False)
+
+        es.mark_email_done(action_mail["message_id"], done=True)
+
+        statuses = es.get_email_statuses(
+            [action_mail, notice_mail, unanalyzed]
+        )
+
+        self.assertEqual(
+            [s["status"] for s in es.filter_email_statuses(statuses, "done")],
+            ["done"],
+        )
+        self.assertEqual(
+            [s["status"] for s in es.filter_email_statuses(statuses, "todo")],
+            [],
+        )
+        pending = es.filter_email_statuses(statuses, "pending")
+        self.assertEqual([s["status"] for s in pending], ["unanalyzed"])
+        self.assertEqual(
+            len(es.filter_email_statuses(statuses, "all")),
+            3,
+        )
+
+    def test_clear_processed_emails(self):
+        self._analyze(1, True)
+        self.assertTrue(config.PROCESSED_EMAILS_FILE.exists())
+
+        es.clear_processed_emails()
+
+        self.assertFalse(config.PROCESSED_EMAILS_FILE.exists())
+        self.assertEqual(es._load_processed(), {})
 
 
 if __name__ == "__main__":

@@ -293,6 +293,21 @@ def add_user_input(task_id, user_input):
     return False
 
 
+def clear_all_tasks():
+    """清空所有任务，任务 ID 计数器重置为 1。"""
+
+    with _lock:
+
+        save_tasks([])
+
+        counter_file = config.TASKS_DIR / "next_id.txt"
+
+        with open(counter_file, "w", encoding="utf-8") as f:
+            f.write("1")
+
+    return True
+
+
 def create_test_task():
 
     with _lock:

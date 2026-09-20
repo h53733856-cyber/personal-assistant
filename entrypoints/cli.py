@@ -42,15 +42,160 @@ def _ask(prompt):
         return None
 
 
-def run_email_check():
-    print()
-    print("Personal Assistant started!")
-    print()
+VIEW_NAMES = {
+    "all": "全部",
+    "todo": "待办（已分析、需要行动、还没做）",
+    "done": "已完成（你标记过做完了）",
+    "pending": "未处理（未分析 + 待办）",
+}
 
-    events = check_emails()
+
+def email_console():
+    """邮件控制台：拉取邮件 → 分析新邮件 → 显示每封状态 → 过滤/标记。"""
+
+    from services.email_service import (
+        fetch_recent_emails,
+        get_email_statuses,
+        filter_email_statuses,
+        mark_email_done,
+    )
+
+    print()
+    print("======== 邮件服务 ========")
+    print("正在拉取最近邮件...")
+
+    mails = fetch_recent_emails()
+
+    # 分析未分析的新邮件（已处理过的保持跳过，不重复花钱）
+    events = check_emails(mails)
 
     for line in events:
         print(line)
+
+    current_view = "all"
+
+    while True:
+
+        statuses = get_email_statuses(mails)
+        shown = filter_email_statuses(statuses, current_view)
+
+        print()
+        print("====== 邮件状态（%s）======" % VIEW_NAMES[current_view])
+
+        if not shown:
+            print("（没有符合条件的邮件）")
+
+        for i, s in enumerate(shown, 1):
+            print("[%d] %s" % (i, s["mail"]["subject"]))
+            print("    发件人：%s ｜ 时间：%s ｜ %s"
+                  % (s["mail"]["sender"], s["mail"]["date"],
+                     s["status_label"]))
+
+        print()
+        cmd = _ask(
+            "1 待办 ｜ 2 已完成 ｜ 3 未处理 ｜ a 全部 ｜ "
+            "d 序号 标记已做完 ｜ u 序号 取消标记 ｜ q 返回："
+        )
+
+        if cmd is None or cmd.strip().lower() == "q":
+
+            print("返回菜单。")
+            return
+
+        parts = cmd.strip().split()
+
+        if cmd.strip() == "1":
+            current_view = "todo"
+            continue
+
+        if cmd.strip() == "2":
+            current_view = "done"
+            continue
+
+        if cmd.strip() == "3":
+            current_view = "pending"
+            continue
+
+        if cmd.strip().lower() == "a":
+            current_view = "all"
+            continue
+
+        # d 序号 / u 序号：标记或取消"已做完"
+        if len(parts) == 2 \
+                and parts[0] in ("d", "u") \
+                and parts[1].isdigit():
+
+            idx = int(parts[1])
+
+            if 1 <= idx <= len(shown):
+
+                target = shown[idx - 1]
+                ok = mark_email_done(
+                    target["mail"]["message_id"],
+                    done=(parts[0] == "d"),
+                )
+
+                if ok:
+                    print("标记成功。" if parts[0] == "d" else "已取消标记。")
+                else:
+                    print("该邮件还没有分析记录，无法标记。")
+
+            else:
+                print("序号超出范围。")
+
+            continue
+
+        print("无法识别你的输入。")
+
+
+def data_console():
+    """数据管理：清空任务 / 清空邮件记录（都需要明确确认）。"""
+
+    while True:
+
+        print()
+        print("======== 数据管理 ========")
+        print("1. 清空任务数据（tasks.json，任务 ID 从 1 重新开始）")
+        print("2. 清空邮件记录（processed.json，邮件会重新分析并重建任务）")
+        print("q. 返回")
+        print()
+
+        choice = _ask("请选择：")
+
+        if choice is None or choice == "q":
+            return
+
+        if choice == "1":
+
+            confirm = _ask("将删除所有任务记录，输入 y 确认：")
+
+            if confirm and confirm.strip().lower() == "y":
+
+                task_manager.clear_all_tasks()
+                print("任务数据已清空，任务 ID 从 1 重新开始。")
+                print("注意：邮件记录未动，已处理过的邮件不会重新分析。")
+
+            else:
+                print("已取消。")
+
+        elif choice == "2":
+
+            confirm = _ask("将清空邮件处理记录，输入 y 确认：")
+
+            if confirm and confirm.strip().lower() == "y":
+
+                from services.email_service import clear_processed_emails
+
+                clear_processed_emails()
+                print("邮件记录已清空，下次检查邮件会重新分析。")
+                print("注意：任务数据未动。")
+
+            else:
+                print("已取消。")
+
+        else:
+
+            print("无法识别你的输入。")
 
 
 def list_tasks():
@@ -313,6 +458,7 @@ def main_menu():
         print("1. 邮件服务：检查 smail，AI 分析并自动创建任务")
         print("2. 宿舍报修：发起 EHALL 报修任务")
         print("3. 任务中心：查看任务、补充信息、确认执行")
+        print("4. 数据管理：清空任务数据 / 清空邮件记录")
         print("q. 退出")
         print()
 
@@ -325,7 +471,11 @@ def main_menu():
 
         if choice == "1":
 
-            run_email_check()
+            email_console()
+
+        elif choice == "4":
+
+            data_console()
 
         elif choice == "2":
 
@@ -378,7 +528,7 @@ def main():
     if args.command == "menu":
         main_menu()
     elif args.command == "email":
-        run_email_check()
+        email_console()
     elif args.command == "tasks":
         list_tasks()
     elif args.command == "new":

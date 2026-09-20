@@ -149,6 +149,20 @@ class TestTaskStorage(unittest.TestCase):
         self.assertEqual(task["status"], "NEW")
         self.assertEqual(tm.get_task(task["id"])["source"], "user")
 
+    def test_clear_all_tasks_resets_ids(self):
+        t1 = tm.create_user_task("任务1", {"core": "x"})
+        t2 = tm.create_user_task("任务2", {"core": "x"})
+        self.assertEqual(t2["id"], 2)
+
+        tm.clear_all_tasks()
+
+        self.assertEqual(tm.load_tasks(), [])
+
+        # ID 计数器重置：新任务从 1 开始
+        t3 = tm.create_user_task("任务3", {"core": "x"})
+        self.assertEqual(t3["id"], 1)
+        self.assertIsNotNone(t1)
+
     def test_history_records_transitions(self):
         task = tm.create_task(fake_email(), {"core": "x"})
         tm.update_task_status(task["id"], "PROCESSING", note="开始处理")
