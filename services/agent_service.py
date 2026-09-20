@@ -11,6 +11,7 @@ from agent.task_processor import (
     confirm_task,
     cancel_task,
     request_confirmation,
+    get_missing_repair_fields,
 )
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "confirm_task",
     "cancel_task",
     "request_confirmation",
+    "get_missing_repair_fields",
 ]

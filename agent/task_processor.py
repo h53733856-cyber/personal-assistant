@@ -13,6 +13,7 @@ Agent 任务处理核心。
   服务端（Web / 调度器）把 ECHO 关掉即可拿到干净的事件流。
 """
 
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -105,8 +106,17 @@ def _format_personal_info(results):
 # 避免同一份逻辑写两遍）
 # --------------------------------------------------
 
-def _extract_repair_fields(core, user_input_text, personal_info=""):
-    """让 AI 从任务内容、个人资料、用户补充中提取报修字段。"""
+def _extract_repair_fields(core, user_input_text, personal_info="",
+                           prev_repair_data=None):
+    """让 AI 从任务内容、个人资料、用户补充中提取报修字段。
+
+    prev_repair_data：之前已经整理好的报修数据，
+    这些字段用户之前提供过，AI 必须保留，不能丢失。
+    """
+
+    prev_text = json.dumps(
+        prev_repair_data, ensure_ascii=False
+    ) if prev_repair_data else "（无）"
 
     prompt = f"""
 你是我的个人助手。
@@ -121,6 +131,9 @@ def _extract_repair_fields(core, user_input_text, personal_info=""):
 
 用户已经补充的信息：
 {user_input_text}
+
+之前已经整理好的报修数据（这些信息用户之前提供过，必须保留使用）：
+{prev_text}
 
 请从以上内容中提取宿舍报修表单需要的信息。
 
@@ -236,6 +249,24 @@ def _missing_repair_fields_to_waiting(out, task_id, repair_data):
     return True
 
 
+def get_missing_repair_fields(task):
+    """返回报修任务还缺的必填字段中文名列表。
+
+    非报修任务返回空列表；报修任务还没有 repair_data 时
+    返回全部必填字段。
+    """
+
+    if (task.get("analysis") or {}).get("type") != "宿舍报修":
+        return []
+
+    repair_data = task.get("repair_data")
+
+    if not repair_data:
+        return [name for _, name in REQUIRED_REPAIR_FIELDS.items()]
+
+    return _check_repair_fields(repair_data)
+
+
 # --------------------------------------------------
 # 处理 NEW 任务
 # --------------------------------------------------
@@ -270,13 +301,9 @@ def process_task(task_id):
 
     results = search_documents(core)
 
-    out.emit()
-    out.emit("找到以下个人资料：")
-
-    for result in results:
-        out.emit()
-        out.emit("文件：" + result["file"])
-        out.emit(result["content"])
+    # 检索到的原文不直接展示（可能包含无关资料），
+    # 只展示 AI 筛选后与任务相关的信息（见"AI 信息分析结果"）。
+    out.emit("检索到 %d 个相关文件。" % len(results))
 
     personal_info = _format_personal_info(results)
 
@@ -637,11 +664,15 @@ def continue_task(task_id, user_input):
         results = search_documents(core)
         personal_info = _format_personal_info(results)
 
+        # 之前已经整理好的报修数据，防止重新提取时丢失已提供的信息
+        old_repair_data = task.get("repair_data") or {}
+
         try:
             repair_fields = _extract_repair_fields(
                 core,
                 user_input_text,
-                personal_info
+                personal_info,
+                prev_repair_data=old_repair_data
             )
         except ValueError as e:
             out.emit()
@@ -654,6 +685,18 @@ def continue_task(task_id, user_input):
 
         # 构造 EHALL 报修数据
         repair_data = _build_repair_data(repair_fields)
+
+        # 合并兜底：新提取为空的字段保留旧值，
+        # 即使 AI 丢字段，用户提供过的信息也不会丢
+        kept = []
+
+        for key, value in repair_data.items():
+            if not value and old_repair_data.get(key):
+                repair_data[key] = old_repair_data[key]
+                kept.append(REQUIRED_REPAIR_FIELDS.get(key, key))
+
+        if kept:
+            out.emit("（已保留之前提供的字段：" + "、".join(kept) + "）")
 
         # 保存到任务
         update_task_data(task_id, "repair_data", repair_data)

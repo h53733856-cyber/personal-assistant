@@ -1,386 +1,236 @@
 [
     {
         "id": 1,
-        "message_id": "<tencent_006E92CC25FB0DF3585F8407@qq.com>",
-        "subject": "【通知】关于南京大学新版VPN平台正式上线的通知",
-        "sender": "\" ITSC \" <itsc@nju.edu.cn>",
-        "date": "Tue, 15 Sep 2026 17:38:48 +0800",
-        "analysis": {
-            "type": "系统升级通知",
-            "core": "南京大学将于2026年9月16日起上线新版VPN平台，旧版VPN停止服务，需用户更换客户端或修改接入地址。",
-            "time": "2026年9月16日4点后新版VPN正式上线；9月16日凌晨0点-4点VPN暂停服务",
-            "deadline": null,
-            "need_action": true,
-            "action": "旧版VPN用户需卸载旧版EasyConnect客户端，电脑端访问https://vpn.nju.edu.cn下载新版VPN客户端，移动端在应用商城搜索“aTrust”安装；新版VPN试用用户如已安装aTrust，电脑端在客户端“设置”-“接入地址”切换并输入https://vpn.nju.edu.cn，移动端在登录界面将地址改为https://vpn.nju.edu.cn（如已登录需先退出）。"
-        },
-        "status": "COMPLETED",
-        "user_inputs": [
-            "我已经安装好了新版 VPN 客户端",
-            "我已经修改了接入地址，并且成功连接 VPN"
-        ],
         "source": "email",
-        "created_at": "Tue, 15 Sep 2026 17:38:48 +0800",
-        "history": [],
-        "confirmation": null,
-        "result": null
-    },
-    {
-        "id": 2,
-        "message_id": "test-ehall-001",
-        "subject": "【测试】EHALL申请提交",
-        "sender": "test@example.com",
-        "date": "2026-09-19",
-        "analysis": {
-            "type": "事务办理",
-            "core": "需要在EHALL提交一份申请。",
-            "time": null,
-            "deadline": null,
-            "need_action": true,
-            "action": "填写申请表并提交。"
-        },
-        "status": "COMPLETED",
-        "user_inputs": [
-            "申请信息已经准备好了",
-            "申请信息已经全部准备好了，可以进行提交"
-        ],
-        "source": "email",
-        "created_at": "2026-09-19",
-        "history": [],
-        "confirmation": null,
-        "result": null
-    },
-    {
-        "id": 3,
-        "message_id": "test-3",
-        "subject": "【测试】EHALL申请提交",
-        "sender": "test@example.com",
-        "date": "2026-09-19",
-        "analysis": {
-            "type": "事务办理",
-            "core": "需要在EHALL提交一份申请。",
-            "time": null,
-            "deadline": null,
-            "need_action": true,
-            "action": "填写申请表并提交。"
-        },
-        "status": "COMPLETED",
-        "user_inputs": [
-            "申请信息已经全部准备好了"
-        ],
-        "source": "email",
-        "created_at": "2026-09-19",
-        "history": [],
-        "confirmation": null,
-        "result": null
-    },
-    {
-        "id": 4,
-        "message_id": "《生成式软件工程》课程通知|Yanyan Jiang <jyy@nju.edu.cn>|Mon, 24 Aug 2026 18:33:19 +0800",
         "subject": "《生成式软件工程》课程通知",
-        "sender": "Yanyan Jiang <jyy@nju.edu.cn>",
-        "date": "Mon, 24 Aug 2026 18:33:19 +0800",
         "analysis": {
             "type": "课程通知",
-            "core": "《生成式软件工程》课程第一周因原教室设备未就绪临时调至逸 B-212，推荐在宿舍观看视频直播并请互相转告。",
+            "core": "《生成式软件工程》第一周上课地点临时调整至逸 B-212，并推荐在宿舍观看视频直播。",
             "time": "8 月 25 日周二上午 3-4 节",
             "deadline": null,
             "need_action": true,
-            "action": "收到邮件的同学互相转告；可选择在宿舍观看视频直播"
+            "action": "请收到邮件的同学互相转告。"
         },
-        "status": "COMPLETED",
-        "source": "email",
-        "created_at": "Mon, 24 Aug 2026 18:33:19 +0800",
-        "history": [],
-        "confirmation": null,
-        "result": null
-    },
-    {
-        "id": 5,
-        "message_id": "test-5",
-        "subject": "【测试】EHALL申请提交",
-        "sender": "test@example.com",
-        "date": "2026-09-19",
-        "analysis": {
-            "type": "事务办理",
-            "core": "需要在EHALL提交一份申请。",
-            "time": null,
-            "deadline": null,
-            "need_action": true,
-            "action": "填写申请表并提交。"
-        },
-        "status": "COMPLETED",
-        "user_inputs": [
-            "申请信息已经准备好了"
-        ],
-        "source": "email",
-        "created_at": "2026-09-19",
-        "history": [],
-        "confirmation": null,
-        "result": null
-    },
-    {
-        "id": 6,
-        "message_id": "test-repair-001",
-        "subject": "【测试】宿舍报修",
-        "sender": "test@example.com",
-        "date": "2026-09-20",
-        "analysis": {
-            "type": "宿舍报修",
-            "core": "我的宿舍卫生间水龙头坏了，需要维修。",
-            "time": null,
-            "deadline": null,
-            "need_action": true,
-            "action": "填写宿舍报修申请并提交。"
-        },
-        "status": "FAILED",
-        "user_inputs": [
-            "我住在仙林校区某宿舍楼某房间，水龙头漏水，手机号是13800000000，我今天晚上19:00到21:00方便上门维修。",
-            "我住在仙林校区某宿舍楼某房间，水龙头漏水，手机号是13800000000，我今天晚上19:00到21:00方便上门维修。",
-            "报修类型选择水龙头/水龙头漏水，维修时间是2026-09-20 19:00到2026-09-20 21:00。"
-        ],
-        "repair_data": {
-            "SJH": "13800000000",
-            "XMDM": "水龙头/水龙头漏水",
-            "QYDM": "仙林校区",
-            "GZDD": "某宿舍楼某房间",
-            "DZ_FBSMKSSJ": "2026-09-20 19:00",
-            "DZ_FBSMJSSJ": "2026-09-20 21:00",
-            "GZMS": "卫生间水龙头坏了，水龙头漏水",
-            "BZ": "",
-            "GZTP": "",
-            "DZ_SSDW": "1"
-        },
-        "source": "email",
-        "created_at": "2026-09-20",
+        "status": "NEW",
+        "created_at": "2026-09-20T19:22:50",
         "history": [
             {
-                "at": "2026-09-20T18:56:12",
-                "from": "EXECUTING",
-                "to": "FAILED",
-                "note": "启动恢复：上次执行未完成"
-            }
-        ],
-        "confirmation": null,
-        "result": null
-    },
-    {
-        "id": 7,
-        "source": "email",
-        "subject": "【验证】宿舍报修（阶段5）",
-        "analysis": {
-            "type": "宿舍报修",
-            "core": "我的宿舍卫生间水龙头坏了，需要维修。",
-            "time": null,
-            "deadline": null,
-            "need_action": true,
-            "action": "在 EHALL 提交宿舍报修申请。"
-        },
-        "status": "COMPLETED",
-        "created_at": "2026-09-20T18:48:53",
-        "history": [
-            {
-                "at": "2026-09-20T18:48:53",
+                "at": "2026-09-20T19:22:50",
                 "from": null,
                 "to": "NEW",
                 "note": "创建任务"
-            },
-            {
-                "at": "2026-09-20T18:48:53",
-                "from": "NEW",
-                "to": "PROCESSING",
-                "note": "开始处理"
-            },
-            {
-                "at": "2026-09-20T18:48:54",
-                "from": "PROCESSING",
-                "to": "COMPLETED",
-                "note": "无需个人信息，任务完成"
             }
         ],
         "confirmation": null,
         "result": null,
-        "message_id": "verify-phase5-1789901333",
-        "sender": "verify@example.com",
-        "date": "2026-09-20"
+        "message_id": "《生成式软件工程》课程通知|Yanyan Jiang <jyy@nju.edu.cn>|Mon, 24 Aug 2026 18:33:19 +0800",
+        "sender": "Yanyan Jiang <jyy@nju.edu.cn>",
+        "date": "Mon, 24 Aug 2026 18:33:19 +0800"
     },
     {
-        "id": 8,
+        "id": 2,
         "source": "email",
-        "subject": "【验证】宿舍报修（阶段5）",
+        "subject": "【通知】关于南京大学新版VPN平台正式上线的通知",
+        "analysis": {
+            "type": "系统升级通知",
+            "core": "南京大学将于2026年9月16日起上线新版VPN平台，旧版VPN停止服务，并说明新版VPN的安装和使用方法。",
+            "time": "2026年9月16日",
+            "deadline": null,
+            "need_action": true,
+            "action": "卸载旧版EasyConnect客户端，下载并安装新版VPN客户端aTrust（电脑端访问https://vpn.nju.edu.cn下载，移动端在应用商城搜索aTrust安装）；若已安装过aTrust，则将接入地址切换为https://vpn.nju.edu.cn。"
+        },
+        "status": "NEW",
+        "created_at": "2026-09-20T19:22:51",
+        "history": [
+            {
+                "at": "2026-09-20T19:22:51",
+                "from": null,
+                "to": "NEW",
+                "note": "创建任务"
+            }
+        ],
+        "confirmation": null,
+        "result": null,
+        "message_id": "<tencent_006E92CC25FB0DF3585F8407@qq.com>",
+        "sender": "\" ITSC \" <itsc@nju.edu.cn>",
+        "date": "Tue, 15 Sep 2026 17:38:48 +0800"
+    },
+    {
+        "id": 3,
+        "source": "email",
+        "subject": "请于 2026-09-25 前提交课程作业材料",
+        "analysis": {
+            "type": "作业提交通知",
+            "core": "要求在9月25日之前登录教务系统提交《生成式软件工程》作业材料",
+            "time": "9月25日",
+            "deadline": "2026-09-25",
+            "need_action": true,
+            "action": "登录教务系统提交《生成式软件工程》作业材料"
+        },
+        "status": "NEW",
+        "created_at": "2026-09-20T19:22:52",
+        "history": [
+            {
+                "at": "2026-09-20T19:22:52",
+                "from": null,
+                "to": "NEW",
+                "note": "创建任务"
+            }
+        ],
+        "confirmation": null,
+        "result": null,
+        "message_id": "<tencent_02C7CBC52C273EB11C0D4F5F@qq.com>",
+        "sender": "\" 杨佳璇 \" <241220077@smail.nju.edu.cn>",
+        "date": "Sun, 20 Sep 2026 19:20:21 +0800"
+    },
+    {
+        "id": 4,
+        "source": "user",
+        "subject": "空调漏水，需要维修",
         "analysis": {
             "type": "宿舍报修",
-            "core": "我的宿舍卫生间水龙头坏了，需要维修。",
+            "core": "用户需要维修空调漏水",
             "time": null,
             "deadline": null,
             "need_action": true,
-            "action": "在 EHALL 提交宿舍报修申请。"
+            "action": "报修空调漏水问题"
         },
-        "status": "FAILED",
-        "created_at": "2026-09-20T18:50:18",
+        "status": "WAITING_USER",
+        "created_at": "2026-09-20T19:23:44",
         "history": [
             {
-                "at": "2026-09-20T18:50:18",
+                "at": "2026-09-20T19:23:44",
                 "from": null,
                 "to": "NEW",
                 "note": "创建任务"
             },
             {
-                "at": "2026-09-20T18:50:18",
+                "at": "2026-09-20T19:23:44",
                 "from": "NEW",
                 "to": "PROCESSING",
                 "note": "开始处理"
             },
             {
-                "at": "2026-09-20T18:50:21",
+                "at": "2026-09-20T19:23:46",
                 "from": "PROCESSING",
                 "to": "WAITING_USER",
                 "note": "报修信息不完整"
-            },
-            {
-                "at": "2026-09-20T18:50:22",
-                "from": "WAITING_USER",
-                "to": "WAITING_USER",
-                "note": "报修信息不完整"
-            },
-            {
-                "at": "2026-09-20T18:50:24",
-                "from": "WAITING_USER",
-                "to": "WAITING_CONFIRMATION",
-                "note": "已生成确认单，等待用户确认"
-            },
-            {
-                "at": "2026-09-20T18:50:24",
-                "from": "WAITING_CONFIRMATION",
-                "to": "EXECUTING",
-                "note": "用户已确认，开始执行"
-            },
-            {
-                "at": "2026-09-20T18:50:24",
-                "from": "EXECUTING",
-                "to": "FAILED",
-                "note": "EHALL 提交失败"
             }
         ],
-        "confirmation": {
-            "title": "即将提交 EHALL 宿舍报修申请",
-            "fields": [
-                {
-                    "label": "手机号",
-                    "value": "13800000000"
-                },
-                {
-                    "label": "报修类型",
-                    "value": "水龙头/水龙头漏水"
-                },
-                {
-                    "label": "报修区域",
-                    "value": "仙林校区"
-                },
-                {
-                    "label": "详细地点",
-                    "value": "仙林校区某宿舍楼某房间"
-                },
-                {
-                    "label": "上门服务开始时间",
-                    "value": "2026-09-20 19:00"
-                },
-                {
-                    "label": "上门服务结束时间",
-                    "value": "2026-09-20 21:00"
-                },
-                {
-                    "label": "问题描述",
-                    "value": "宿舍卫生间水龙头坏了，水龙头漏水，需要维修。"
-                },
-                {
-                    "label": "备注",
-                    "value": ""
-                }
-            ],
-            "warning": "确认后将提交该 EHALL 报修申请。",
-            "created_at": "2026-09-20T18:50:24"
-        },
-        "result": {
-            "at": "2026-09-20T18:50:24",
-            "success": false,
-            "message": "EHALL真实提交功能尚未接入"
-        },
-        "message_id": "verify-phase5-1789901418",
-        "sender": "verify@example.com",
-        "date": "2026-09-20",
+        "confirmation": null,
+        "result": null,
         "repair_data": {
-            "SJH": "13800000000",
-            "XMDM": "水龙头/水龙头漏水",
-            "QYDM": "仙林校区",
-            "GZDD": "仙林校区某宿舍楼某房间",
-            "DZ_FBSMKSSJ": "2026-09-20 19:00",
-            "DZ_FBSMJSSJ": "2026-09-20 21:00",
-            "GZMS": "宿舍卫生间水龙头坏了，水龙头漏水，需要维修。",
+            "SJH": "",
+            "XMDM": "",
+            "QYDM": "",
+            "GZDD": "",
+            "DZ_FBSMKSSJ": "",
+            "DZ_FBSMJSSJ": "",
+            "GZMS": "空调漏水",
             "BZ": "",
             "GZTP": "",
             "DZ_SSDW": "1"
-        },
-        "user_inputs": [
-            "我住在仙林校区某宿舍楼某房间，水龙头漏水，手机号是13800000000，我今天晚上19:00到21:00方便上门维修。",
-            "报修类型选择水龙头/水龙头漏水，维修时间是2026-09-20 19:00到2026-09-20 21:00。"
-        ]
+        }
     },
     {
-        "id": 9,
+        "id": 5,
         "source": "user",
-        "subject": "我的宿舍卫生间水龙头坏了，需要维修",
+        "subject": "空调漏水，需要维修，手机号12345677地点在仙林宿舍，222，希望2026年9月25日10：00到12：00上门维修",
         "analysis": {
             "type": "宿舍报修",
-            "core": "用户需要维修宿舍卫生间的水龙头",
-            "time": null,
+            "core": "用户申请空调漏水维修，希望2026年9月25日10:00到12:00上门维修",
+            "time": "2026年9月25日10:00到12:00",
             "deadline": null,
             "need_action": true,
-            "action": "提交宿舍卫生间水龙头维修报修请求"
+            "action": "提交空调漏水维修申请，联系人电话12345677，地点仙林宿舍222，预约2026年9月25日10:00到12:00上门维修"
         },
-        "status": "FAILED",
-        "created_at": "2026-09-20T18:53:49",
+        "status": "WAITING_USER",
+        "created_at": "2026-09-20T19:25:32",
         "history": [
             {
-                "at": "2026-09-20T18:53:49",
+                "at": "2026-09-20T19:25:32",
                 "from": null,
                 "to": "NEW",
                 "note": "创建任务"
             },
             {
-                "at": "2026-09-20T18:53:49",
+                "at": "2026-09-20T19:25:32",
                 "from": "NEW",
                 "to": "PROCESSING",
                 "note": "开始处理"
             },
             {
-                "at": "2026-09-20T18:53:52",
+                "at": "2026-09-20T19:25:33",
+                "from": "PROCESSING",
+                "to": "WAITING_USER",
+                "note": "报修信息不完整"
+            }
+        ],
+        "confirmation": null,
+        "result": null,
+        "repair_data": {
+            "SJH": "",
+            "XMDM": "",
+            "QYDM": "",
+            "GZDD": "",
+            "DZ_FBSMKSSJ": "2026-09-25 10:00",
+            "DZ_FBSMJSSJ": "2026-09-25 12:00",
+            "GZMS": "空调漏水",
+            "BZ": "",
+            "GZTP": "",
+            "DZ_SSDW": "1"
+        }
+    },
+    {
+        "id": 6,
+        "source": "user",
+        "subject": "空调坏了，需要维修",
+        "analysis": {
+            "type": "宿舍报修",
+            "core": "用户报告空调坏了需要维修",
+            "time": null,
+            "deadline": null,
+            "need_action": true,
+            "action": "安排空调维修"
+        },
+        "status": "WAITING_CONFIRMATION",
+        "created_at": "2026-09-20T19:36:41",
+        "history": [
+            {
+                "at": "2026-09-20T19:36:41",
+                "from": null,
+                "to": "NEW",
+                "note": "创建任务"
+            },
+            {
+                "at": "2026-09-20T19:36:41",
+                "from": "NEW",
+                "to": "PROCESSING",
+                "note": "开始处理"
+            },
+            {
+                "at": "2026-09-20T19:36:43",
                 "from": "PROCESSING",
                 "to": "WAITING_USER",
                 "note": "报修信息不完整"
             },
             {
-                "at": "2026-09-20T18:54:18",
+                "at": "2026-09-20T19:36:44",
                 "from": "WAITING_USER",
                 "to": "WAITING_USER",
                 "note": "报修信息不完整"
             },
             {
-                "at": "2026-09-20T18:54:19",
+                "at": "2026-09-20T19:36:45",
+                "from": "WAITING_USER",
+                "to": "WAITING_USER",
+                "note": "报修信息不完整"
+            },
+            {
+                "at": "2026-09-20T19:40:17",
                 "from": "WAITING_USER",
                 "to": "WAITING_CONFIRMATION",
                 "note": "已生成确认单，等待用户确认"
-            },
-            {
-                "at": "2026-09-20T18:54:19",
-                "from": "WAITING_CONFIRMATION",
-                "to": "EXECUTING",
-                "note": "用户已确认，开始执行"
-            },
-            {
-                "at": "2026-09-20T18:54:19",
-                "from": "EXECUTING",
-                "to": "FAILED",
-                "note": "EHALL 提交失败"
             }
         ],
         "confirmation": {
@@ -392,7 +242,7 @@
                 },
                 {
                     "label": "报修类型",
-                    "value": "水龙头/水龙头漏水"
+                    "value": "空调/空调不制冷"
                 },
                 {
                     "label": "报修区域",
@@ -412,7 +262,7 @@
                 },
                 {
                     "label": "问题描述",
-                    "value": "宿舍卫生间的水龙头漏水"
+                    "value": "空调不制冷"
                 },
                 {
                     "label": "备注",
@@ -420,206 +270,25 @@
                 }
             ],
             "warning": "确认后将提交该 EHALL 报修申请。",
-            "created_at": "2026-09-20T18:54:19"
+            "created_at": "2026-09-20T19:40:17"
         },
-        "result": {
-            "at": "2026-09-20T18:54:19",
-            "success": false,
-            "message": "EHALL真实提交功能尚未接入"
-        },
+        "result": null,
         "repair_data": {
             "SJH": "13800000000",
-            "XMDM": "水龙头/水龙头漏水",
+            "XMDM": "空调/空调不制冷",
             "QYDM": "仙林校区",
             "GZDD": "某宿舍楼某房间",
             "DZ_FBSMKSSJ": "2026-09-20 19:00",
             "DZ_FBSMJSSJ": "2026-09-20 21:00",
-            "GZMS": "宿舍卫生间的水龙头漏水",
+            "GZMS": "空调不制冷",
             "BZ": "",
             "GZTP": "",
             "DZ_SSDW": "1"
         },
         "user_inputs": [
-            "我住在仙林校区某宿舍楼某房间，水龙头漏水，手机号是13800000000，我今天晚上19:00到21:00方便上门维修。",
-            "报修类型选择水龙头/水龙头漏水，维修时间是2026-09-20 19:00到2026-09-20 21:00。"
+            "我住在仙林校区某宿舍楼某房间，空调不制冷，手机号13800000000，今晚19:00到21:00方便上门维修",
+            "报修类型选择空调/空调不制冷，维修时间是2026-09-20 19:00到2026-09-20 21:00",
+            "我住在仙林校区某宿舍楼某房间"
         ]
-    },
-    {
-        "id": 10,
-        "source": "user",
-        "subject": "我的宿舍卫生间水龙头坏了，需要维修",
-        "analysis": {
-            "type": "宿舍报修",
-            "core": "用户报告宿舍卫生间水龙头损坏，需要维修",
-            "time": null,
-            "deadline": null,
-            "need_action": true,
-            "action": "提交宿舍卫生间水龙头维修报修申请"
-        },
-        "status": "FAILED",
-        "created_at": "2026-09-20T18:58:33",
-        "history": [
-            {
-                "at": "2026-09-20T18:58:33",
-                "from": null,
-                "to": "NEW",
-                "note": "创建任务"
-            },
-            {
-                "at": "2026-09-20T18:58:33",
-                "from": "NEW",
-                "to": "PROCESSING",
-                "note": "开始处理"
-            },
-            {
-                "at": "2026-09-20T18:58:35",
-                "from": "PROCESSING",
-                "to": "WAITING_USER",
-                "note": "报修信息不完整"
-            },
-            {
-                "at": "2026-09-20T18:58:46",
-                "from": "WAITING_USER",
-                "to": "WAITING_USER",
-                "note": "报修信息不完整"
-            },
-            {
-                "at": "2026-09-20T18:58:48",
-                "from": "WAITING_USER",
-                "to": "WAITING_CONFIRMATION",
-                "note": "已生成确认单，等待用户确认"
-            },
-            {
-                "at": "2026-09-20T18:58:53",
-                "from": "WAITING_CONFIRMATION",
-                "to": "EXECUTING",
-                "note": "用户已确认，开始执行"
-            },
-            {
-                "at": "2026-09-20T18:58:53",
-                "from": "EXECUTING",
-                "to": "FAILED",
-                "note": "EHALL 提交失败"
-            }
-        ],
-        "confirmation": {
-            "title": "即将提交 EHALL 宿舍报修申请",
-            "fields": [
-                {
-                    "label": "手机号",
-                    "value": "13800000000"
-                },
-                {
-                    "label": "报修类型",
-                    "value": "水龙头/水龙头漏水"
-                },
-                {
-                    "label": "报修区域",
-                    "value": "仙林校区"
-                },
-                {
-                    "label": "详细地点",
-                    "value": "某宿舍楼某房间卫生间"
-                },
-                {
-                    "label": "上门服务开始时间",
-                    "value": "2026-09-20 19:00"
-                },
-                {
-                    "label": "上门服务结束时间",
-                    "value": "2026-09-20 21:00"
-                },
-                {
-                    "label": "问题描述",
-                    "value": "宿舍卫生间水龙头损坏，水龙头漏水"
-                },
-                {
-                    "label": "备注",
-                    "value": ""
-                }
-            ],
-            "warning": "确认后将提交该 EHALL 报修申请。",
-            "created_at": "2026-09-20T18:58:48"
-        },
-        "result": {
-            "at": "2026-09-20T18:58:53",
-            "success": false,
-            "message": "EHALL真实提交功能尚未接入"
-        },
-        "repair_data": {
-            "SJH": "13800000000",
-            "XMDM": "水龙头/水龙头漏水",
-            "QYDM": "仙林校区",
-            "GZDD": "某宿舍楼某房间卫生间",
-            "DZ_FBSMKSSJ": "2026-09-20 19:00",
-            "DZ_FBSMJSSJ": "2026-09-20 21:00",
-            "GZMS": "宿舍卫生间水龙头损坏，水龙头漏水",
-            "BZ": "",
-            "GZTP": "",
-            "DZ_SSDW": "1"
-        },
-        "user_inputs": [
-            "我住在仙林校区某宿舍楼某房间，水龙头漏水，手机号是13800000000，我今天晚上19:00到21:00方便上门维修。",
-            "报修类型选择水龙头/水龙头漏水，维修时间是2026-09-20 19:00到2026-09-20 21:00。"
-        ]
-    },
-    {
-        "id": 11,
-        "source": "user",
-        "subject": "我要报修宿舍水龙头",
-        "analysis": {
-            "type": "宿舍报修",
-            "core": "用户要报修宿舍水龙头",
-            "time": null,
-            "deadline": null,
-            "need_action": true,
-            "action": "为用户提交宿舍水龙头报修申请"
-        },
-        "status": "CANCELLED",
-        "created_at": "2026-09-20T18:58:54",
-        "history": [
-            {
-                "at": "2026-09-20T18:58:54",
-                "from": null,
-                "to": "NEW",
-                "note": "创建任务"
-            },
-            {
-                "at": "2026-09-20T18:58:54",
-                "from": "NEW",
-                "to": "PROCESSING",
-                "note": "开始处理"
-            },
-            {
-                "at": "2026-09-20T18:58:56",
-                "from": "PROCESSING",
-                "to": "WAITING_USER",
-                "note": "报修信息不完整"
-            },
-            {
-                "at": "2026-09-20T18:59:02",
-                "from": "WAITING_USER",
-                "to": "CANCELLED",
-                "note": "用户取消任务"
-            }
-        ],
-        "confirmation": null,
-        "result": {
-            "at": "2026-09-20T18:59:02",
-            "success": false,
-            "message": "用户取消任务"
-        },
-        "repair_data": {
-            "SJH": "",
-            "XMDM": "",
-            "QYDM": "",
-            "GZDD": "",
-            "DZ_FBSMKSSJ": "",
-            "DZ_FBSMJSSJ": "",
-            "GZMS": "宿舍水龙头报修",
-            "BZ": "",
-            "GZTP": "",
-            "DZ_SSDW": "1"
-        }
     }
 ]

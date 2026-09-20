@@ -275,6 +275,31 @@ class TestContinueTask(unittest.TestCase):
         self.assertEqual(saved["status"], "WAITING_CONFIRMATION")
         self.assertIsNotNone(saved["confirmation"])
 
+    def test_keeps_previously_provided_fields(self):
+        """核心回归：重新提取时 AI 丢掉的字段，必须保留旧值。"""
+        task = self._task_waiting_user()
+        # 用户上一轮已经提供过的信息
+        tm.update_task_data(task["id"], "repair_data", {
+            "SJH": "13800000000",
+            "QYDM": "仙林校区",
+            "GZDD": "某宿舍楼某房间",
+        })
+
+        # 新一轮提取：AI 把报修区域和详细地点丢了
+        repair_missing_area = dict(REPAIR_COMPLETE, area="", location="")
+
+        with mock.patch(
+            "agent.task_processor.ask_llm_json",
+            side_effect=[repair_missing_area, DECISION_CONFIRM],
+        ):
+            out = tp.continue_task(task["id"], "补充报修类型和时间")
+
+        saved = tm.get_task(task["id"])
+
+        self.assertEqual(saved["repair_data"]["QYDM"], "仙林校区")
+        self.assertEqual(saved["repair_data"]["GZDD"], "某宿舍楼某房间")
+        self.assertEqual(saved["status"], "WAITING_CONFIRMATION")
+
     def test_repair_still_incomplete_stays_waiting(self):
         task = self._task_waiting_user()
 
@@ -298,6 +323,47 @@ class TestContinueTask(unittest.TestCase):
             out = tp.continue_task(task["id"], "补充信息")
 
         self.assertEqual(tm.get_task(task["id"])["status"], "WAITING_USER")
+
+
+class TestMissingRepairFields(unittest.TestCase):
+
+    def setUp(self):
+        self._ctx = TempDataDir()
+        self._ctx.__enter__()
+        self._echo = tp.ECHO
+        tp.ECHO = False
+
+    def tearDown(self):
+        tp.ECHO = self._echo
+        self._ctx.__exit__(None, None, None)
+
+    def test_non_repair_task_returns_empty(self):
+        task = tm.create_user_task("普通任务", {"type": "通知", "core": "x"})
+        self.assertEqual(
+            tp.get_missing_repair_fields(tm.get_task(task["id"])),
+            [],
+        )
+
+    def test_repair_without_data_returns_all(self):
+        task = create_repair_task()
+        missing = tp.get_missing_repair_fields(tm.get_task(task["id"]))
+        self.assertEqual(len(missing), 7)
+
+    def test_repair_with_complete_data_returns_empty(self):
+        task = create_repair_task()
+        tm.update_task_data(task["id"], "repair_data", {
+            "SJH": "1",
+            "XMDM": "水龙头/水龙头漏水",
+            "QYDM": "仙林校区",
+            "GZDD": "x",
+            "DZ_FBSMKSSJ": "t",
+            "DZ_FBSMJSSJ": "t",
+            "GZMS": "坏",
+        })
+        self.assertEqual(
+            tp.get_missing_repair_fields(tm.get_task(task["id"])),
+            [],
+        )
 
 
 class TestConfirmTask(unittest.TestCase):

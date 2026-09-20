@@ -9,7 +9,6 @@ def search_documents(question):
 
     # 把问题拆成中文词语
     keywords = jieba.lcut(question)
-    print("关键词：", keywords)
 
     for filename in os.listdir(config.DOCUMENTS_DIR):
         if not filename.endswith(".md"):

@@ -1,0 +1,50 @@
+{
+    "《生成式软件工程》课程通知|Yanyan Jiang <jyy@nju.edu.cn>|Mon, 24 Aug 2026 18:33:19 +0800": {
+        "analyzed_at": "2026-09-20T19:22:50",
+        "subject": "《生成式软件工程》课程通知",
+        "analysis": {
+            "type": "课程通知",
+            "core": "《生成式软件工程》第一周上课地点临时调整至逸 B-212，并推荐在宿舍观看视频直播。",
+            "time": "8 月 25 日周二上午 3-4 节",
+            "deadline": null,
+            "need_action": true,
+            "action": "请收到邮件的同学互相转告。"
+        }
+    },
+    "<tencent_006E92CC25FB0DF3585F8407@qq.com>": {
+        "analyzed_at": "2026-09-20T19:22:51",
+        "subject": "【通知】关于南京大学新版VPN平台正式上线的通知",
+        "analysis": {
+            "type": "系统升级通知",
+            "core": "南京大学将于2026年9月16日起上线新版VPN平台，旧版VPN停止服务，并说明新版VPN的安装和使用方法。",
+            "time": "2026年9月16日",
+            "deadline": null,
+            "need_action": true,
+            "action": "卸载旧版EasyConnect客户端，下载并安装新版VPN客户端aTrust（电脑端访问https://vpn.nju.edu.cn下载，移动端在应用商城搜索aTrust安装）；若已安装过aTrust，则将接入地址切换为https://vpn.nju.edu.cn。"
+        }
+    },
+    "<tencent_02C7CBC52C273EB11C0D4F5F@qq.com>": {
+        "analyzed_at": "2026-09-20T19:22:52",
+        "subject": "请于 2026-09-25 前提交课程作业材料",
+        "analysis": {
+            "type": "作业提交通知",
+            "core": "要求在9月25日之前登录教务系统提交《生成式软件工程》作业材料",
+            "time": "9月25日",
+            "deadline": "2026-09-25",
+            "need_action": true,
+            "action": "登录教务系统提交《生成式软件工程》作业材料"
+        }
+    },
+    "<tencent_17FFE85F1F641DFA29C4A021@qq.com>": {
+        "analyzed_at": "2026-09-20T19:22:53",
+        "subject": "图书馆开放时间调整通知",
+        "analysis": {
+            "type": "通知",
+            "core": "图书馆自下周起将闭馆时间调整为22:00",
+            "time": "下周起",
+            "deadline": null,
+            "need_action": false,
+            "action": null
+        }
+    }
+}

@@ -20,6 +20,7 @@ from services.agent_service import (
     continue_task,
     confirm_task,
     cancel_task,
+    get_missing_repair_fields,
 )
 from services.email_service import check_emails
 
@@ -66,6 +67,8 @@ def list_tasks():
 
 
 def create_task_from_text(text):
+    """分析用户请求并创建任务，返回最新任务（或 None）。"""
+
     from agent.user_agent import analyze_user_request
 
     print()
@@ -79,7 +82,7 @@ def create_task_from_text(text):
 
     if not analysis.get("need_action"):
         print("这个请求不需要创建任务。")
-        return
+        return None
 
     task = task_manager.create_user_task(text, analysis)
 
@@ -88,6 +91,138 @@ def create_task_from_text(text):
     print()
 
     _print_outcome(process_task(task["id"]))
+
+    return task_manager.get_task(task["id"])
+
+
+def drive_task(task_id):
+    """连续引导一个任务直到结束：
+
+    - 缺信息：直接在这里补充（按 W 返回菜单）
+    - 要确认：先展示确认单再询问
+    - NEW：自动开始处理
+    """
+
+    while True:
+
+        task = task_manager.get_task(task_id)
+
+        if task is None:
+
+            print("任务不存在。")
+            return
+
+        status = task["status"]
+
+        # ==============================
+        # 等待用户补充信息：原地询问
+        # ==============================
+
+        if status == "WAITING_USER":
+
+            print()
+            print("这个任务正在等待你的信息。")
+
+            missing = get_missing_repair_fields(task)
+
+            if missing:
+
+                print()
+                print("还缺少以下信息：")
+
+                for name in missing:
+                    print("- " + name)
+
+            print()
+            user_input = _ask("请直接输入补充信息（按 W 返回菜单）：")
+
+            if user_input is None or user_input.strip().lower() == "w":
+
+                print("任务保持等待状态，稍后可以在任务中心继续。")
+                return
+
+            if user_input.strip():
+                _print_outcome(continue_task(task_id, user_input.strip()))
+
+            continue
+
+        # ==============================
+        # 等待用户确认：先展示确认单
+        # ==============================
+
+        if status == "WAITING_CONFIRMATION":
+
+            print()
+            print("这个任务需要你的确认。")
+
+            confirmation = task.get("confirmation")
+
+            if confirmation:
+
+                print()
+                print("================================")
+                print(confirmation["title"])
+                print("================================")
+
+                for field in confirmation["fields"]:
+                    print(field["label"] + "：" + str(field["value"]))
+
+                print()
+                print("注意：" + confirmation["warning"])
+                print("================================")
+
+            else:
+
+                print("任务内容：", task["analysis"]["core"])
+
+            confirm_input = _ask("请输入“确认”或“取消”（按 W 返回菜单）：")
+
+            if confirm_input == "确认":
+
+                _print_outcome(confirm_task(task_id))
+                return
+
+            if confirm_input == "取消":
+
+                print("用户取消了任务。")
+
+                _print_outcome(cancel_task(task_id))
+                return
+
+            if confirm_input is None or confirm_input.strip().lower() == "w":
+                return
+
+            print("无法识别你的输入，任务暂不执行。")
+            continue
+
+        # ==============================
+        # 还没开始处理：自动开始
+        # ==============================
+
+        if status == "NEW":
+
+            print()
+            print("这个任务还没有开始处理。")
+
+            _print_outcome(process_task(task_id))
+
+            # 如果处理没有让状态前进（异常情况），不再无限循环
+            task = task_manager.get_task(task_id)
+
+            if task and task["status"] == "NEW":
+
+                print("任务处理没有推进，请稍后在任务中心重试。")
+                return
+
+            continue
+
+        # ==============================
+        # 其他状态（终态）
+        # ==============================
+
+        print()
+        print("当前任务状态：", status)
+        return
 
 
 def record_feedback_from_cli(text, commit=False):
@@ -161,87 +296,9 @@ def interactive_loop():
             print("任务不存在。")
             continue
 
-        # ==============================
-        # WAITING_USER
-        # ==============================
-
-        if task["status"] == "WAITING_USER":
-
-            print()
-            print("这个任务正在等待你的信息。")
-
-            user_input = _ask("请输入你的回复：")
-
-            if not user_input:
-                continue
-
-            _print_outcome(continue_task(task_id, user_input))
-
-        # ==============================
-        # WAITING_CONFIRMATION
-        # ==============================
-
-        elif task["status"] == "WAITING_CONFIRMATION":
-
-            print()
-            print("这个任务需要你的确认。")
-
-            # 先展示确认单（关键字段 + 可能后果），再询问用户
-            confirmation = task.get("confirmation")
-
-            if confirmation:
-
-                print()
-                print("================================")
-                print(confirmation["title"])
-                print("================================")
-
-                for field in confirmation["fields"]:
-                    print(field["label"] + "：" + str(field["value"]))
-
-                print()
-                print("注意：" + confirmation["warning"])
-                print("================================")
-
-            else:
-
-                print("任务内容：", task["analysis"]["core"])
-
-            confirm_input = _ask("请输入“确认”或“取消”：")
-
-            if confirm_input == "确认":
-
-                _print_outcome(confirm_task(task_id))
-
-            elif confirm_input == "取消":
-
-                print("用户取消了任务。")
-
-                _print_outcome(cancel_task(task_id))
-
-            else:
-
-                print("无法识别你的输入，任务暂不执行。")
-
-        # ==============================
-        # NEW
-        # ==============================
-
-        elif task["status"] == "NEW":
-
-            print()
-            print("这个任务还没有开始处理。")
-
-            _print_outcome(process_task(task_id))
-
-        # ==============================
-        # 其他状态
-        # ==============================
-
-        else:
-
-            print()
-            print("当前任务状态：", task["status"])
+        # 交给 drive_task 连续引导：缺信息原地补、确认单先展示，
+        # 按 W 回到任务列表
+        drive_task(task_id)
 
 
 def main_menu():
@@ -276,10 +333,17 @@ def main_menu():
                 "请描述报修内容（例如：我的宿舍卫生间水龙头坏了，需要维修）："
             )
 
-            if text and text.strip():
-                create_task_from_text(text.strip())
-            else:
+            if not text or not text.strip():
+
                 print("没有输入内容，返回菜单。")
+
+            else:
+
+                task = create_task_from_text(text.strip())
+
+                if task:
+                    # 缺什么信息直接在这里补充，按 W 返回菜单
+                    drive_task(task["id"])
 
         elif choice == "3":
 
