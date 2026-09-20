@@ -202,7 +202,13 @@ def start_scheduler_thread():
 
 def main():
     port = int(os.getenv("PA_PORT", "5000"))
-    start_scheduler_thread()
+
+    # PA_SCHEDULER=0 时不启动后台调度（测试时避免自动拉取邮件）
+    if os.getenv("PA_SCHEDULER", "1") != "0":
+        start_scheduler_thread()
+    else:
+        log.info("PA_SCHEDULER=0，后台调度未启动")
+
     app.run(host="0.0.0.0", port=port)
 
 

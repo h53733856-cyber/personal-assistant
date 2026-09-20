@@ -103,6 +103,7 @@ PA_POLL_INTERVAL=60 .venv/bin/python entrypoints/scheduler.py
 
 ```bash
 .venv/bin/python server.py        # 监听 0.0.0.0:5000，可用 PA_PORT 改端口
+PA_SCHEDULER=0 .venv/bin/python server.py   # 不启动后台邮件调度（测试时用）
 ```
 
 手机浏览器访问 `http://<电脑IP>:5000`（与电脑同一局域网）。
