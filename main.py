@@ -1,87 +1,40 @@
-from tools.email import get_recent_emails
+"""
+Personal Assistant 主入口（命令行交互模式）。
 
-# 去 email.py 找读取邮件的功能
-
-from agent.email_agent import analyze_email
-
-# 去 email_agent.py 找邮件分析功能
+邮件处理已经移入 services/email_service.py，
+这里只负责调用并展示结果，业务逻辑不依赖 input()。
+"""
 
 from agent.task_processor import (
+    process_task,
     continue_task,
     confirm_task,
     cancel_task
 )
 
 from agent.task_manager import (
-    create_task,
-    task_exists,
-    get_new_tasks,
+    get_task,
     get_user_tasks
 )
 
-# 去 task_manager.py 找任务管理功能
+from services.email_service import check_emails
 
 
 print("Personal Assistant started!")
 
 
 # ==============================
-# 第一步：读取最近邮件
+# 第一步：读取并分析最近邮件
 # ==============================
 
-emails = get_recent_emails()
+events = check_emails()
 
-
-# ==============================
-# 第二步：处理邮件
-# ==============================
-
-for mail in emails:
-
-    print()
-    print("================================")
-    print("主题：", mail["subject"])
-    print("发件人：", mail["sender"])
-    print("时间：", mail["date"])
-
-    # 先检查这封邮件以前是否已经处理过
-    if task_exists(mail["message_id"]):
-
-        print()
-        print("这封邮件已经处理过，跳过 AI 分析。")
-
-        continue
-
-    # ==============================
-    # 调用 AI 分析邮件
-    # ==============================
-
-    print()
-    print("AI 分析：")
-
-    result = analyze_email(mail)
-
-    print("邮件类型：", result["type"])
-    print("核心事项：", result["core"])
-    print("时间信息：", result["time"])
-    print("截止时间：", result["deadline"])
-    print("需要用户行动：", result["need_action"])
-    print("需要做什么：", result["action"])
-
-    # ==============================
-    # 如果需要用户行动，就创建任务
-    # ==============================
-
-    if result["need_action"]:
-
-        task = create_task(mail, result)
-
-        print()
-        print("已创建任务：", task["id"])
+for line in events:
+    print(line)
 
 
 # ==============================
-# 第三步：查看当前 NEW 任务
+# 第二步：查看当前需要处理的任务
 # ==============================
 
 print()
@@ -100,7 +53,7 @@ for task in user_tasks:
 
 
 # ==============================
-# 第四步：用户与任务交互
+# 第三步：用户与任务交互
 # ==============================
 
 print()
@@ -139,11 +92,14 @@ while True:
         break
 
     # 把用户输入的任务 ID 转换成整数
-    task_id = int(task_id_input)
+    try:
+        task_id = int(task_id_input)
+    except ValueError:
+
+        print("无法识别你的输入。")
+        continue
 
     # 获取任务最新状态
-    from agent.task_manager import get_task
-
     task = get_task(task_id)
 
     if task is None:
@@ -218,9 +174,6 @@ while True:
 
         print()
         print("这个任务还没有开始处理。")
-
-        # 这里暂时只把任务交给 Agent 处理
-        from agent.task_processor import process_task
 
         process_task(task_id)
 
