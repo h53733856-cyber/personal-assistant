@@ -8,15 +8,15 @@ from agent.email_agent import analyze_email
 
 from agent.task_processor import (
     continue_task,
-    confirm_task
+    confirm_task,
+    cancel_task
 )
 
 from agent.task_manager import (
     create_task,
     task_exists,
     get_new_tasks,
-    get_user_tasks,
-    update_task_status
+    get_user_tasks
 )
 
 # 去 task_manager.py 找任务管理功能
@@ -172,7 +172,27 @@ while True:
 
         print()
         print("这个任务需要你的确认。")
-        print("任务内容：", task["analysis"]["core"])
+
+        # 先展示确认单（关键字段 + 可能后果），再询问用户
+        confirmation = task.get("confirmation")
+
+        if confirmation:
+
+            print()
+            print("================================")
+            print(confirmation["title"])
+            print("================================")
+
+            for field in confirmation["fields"]:
+                print(field["label"] + "：" + str(field["value"]))
+
+            print()
+            print("注意：" + confirmation["warning"])
+            print("================================")
+
+        else:
+
+            print("任务内容：", task["analysis"]["core"])
 
         confirm_input = input("请输入“确认”或“取消”：")
 
@@ -184,10 +204,7 @@ while True:
 
             print("用户取消了任务。")
 
-            update_task_status(
-                task_id,
-                "CANCELLED"
-            )
+            cancel_task(task_id)
 
         else:
 

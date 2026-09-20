@@ -17,7 +17,12 @@
         "user_inputs": [
             "我已经安装好了新版 VPN 客户端",
             "我已经修改了接入地址，并且成功连接 VPN"
-        ]
+        ],
+        "source": "email",
+        "created_at": "Tue, 15 Sep 2026 17:38:48 +0800",
+        "history": [],
+        "confirmation": null,
+        "result": null
     },
     {
         "id": 2,
@@ -37,7 +42,12 @@
         "user_inputs": [
             "申请信息已经准备好了",
             "申请信息已经全部准备好了，可以进行提交"
-        ]
+        ],
+        "source": "email",
+        "created_at": "2026-09-19",
+        "history": [],
+        "confirmation": null,
+        "result": null
     },
     {
         "id": 3,
@@ -56,7 +66,12 @@
         "status": "COMPLETED",
         "user_inputs": [
             "申请信息已经全部准备好了"
-        ]
+        ],
+        "source": "email",
+        "created_at": "2026-09-19",
+        "history": [],
+        "confirmation": null,
+        "result": null
     },
     {
         "id": 4,
@@ -72,7 +87,12 @@
             "need_action": true,
             "action": "收到邮件的同学互相转告；可选择在宿舍观看视频直播"
         },
-        "status": "COMPLETED"
+        "status": "COMPLETED",
+        "source": "email",
+        "created_at": "Mon, 24 Aug 2026 18:33:19 +0800",
+        "history": [],
+        "confirmation": null,
+        "result": null
     },
     {
         "id": 5,
@@ -91,7 +111,12 @@
         "status": "COMPLETED",
         "user_inputs": [
             "申请信息已经准备好了"
-        ]
+        ],
+        "source": "email",
+        "created_at": "2026-09-19",
+        "history": [],
+        "confirmation": null,
+        "result": null
     },
     {
         "id": 6,
@@ -124,6 +149,51 @@
             "BZ": "",
             "GZTP": "",
             "DZ_SSDW": "1"
-        }
+        },
+        "source": "email",
+        "created_at": "2026-09-20",
+        "history": [],
+        "confirmation": null,
+        "result": null
+    },
+    {
+        "id": 7,
+        "source": "email",
+        "subject": "【验证】宿舍报修（阶段5）",
+        "analysis": {
+            "type": "宿舍报修",
+            "core": "我的宿舍卫生间水龙头坏了，需要维修。",
+            "time": null,
+            "deadline": null,
+            "need_action": true,
+            "action": "在 EHALL 提交宿舍报修申请。"
+        },
+        "status": "COMPLETED",
+        "created_at": "2026-09-20T18:48:53",
+        "history": [
+            {
+                "at": "2026-09-20T18:48:53",
+                "from": null,
+                "to": "NEW",
+                "note": "创建任务"
+            },
+            {
+                "at": "2026-09-20T18:48:53",
+                "from": "NEW",
+                "to": "PROCESSING",
+                "note": "开始处理"
+            },
+            {
+                "at": "2026-09-20T18:48:54",
+                "from": "PROCESSING",
+                "to": "COMPLETED",
+                "note": "无需个人信息，任务完成"
+            }
+        ],
+        "confirmation": null,
+        "result": null,
+        "message_id": "verify-phase5-1789901333",
+        "sender": "verify@example.com",
+        "date": "2026-09-20"
     }
 ]

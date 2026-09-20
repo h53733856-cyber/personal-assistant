@@ -157,6 +157,14 @@ class TestProcessTask(unittest.TestCase):
         self.assertEqual(saved["repair_data"]["SJH"], "13800000000")
         self.assertEqual(saved["repair_data"]["QYDM"], "仙林校区")
 
+        # 确认单快照必须已经生成，供 UI 在询问用户之前展示
+        confirmation = saved["confirmation"]
+        self.assertIsNotNone(confirmation)
+        self.assertEqual(confirmation["title"], "即将提交 EHALL 宿舍报修申请")
+        labels = [f["label"] for f in confirmation["fields"]]
+        self.assertIn("手机号", labels)
+        self.assertIn("问题描述", labels)
+
     def test_repair_fields_incomplete_waiting_user(self):
         task = create_repair_task()
 
@@ -246,6 +254,7 @@ class TestContinueTask(unittest.TestCase):
             "2026-09-20 19:00"
         )
         self.assertEqual(saved["status"], "WAITING_CONFIRMATION")
+        self.assertIsNotNone(saved["confirmation"])
 
     def test_repair_still_incomplete_stays_waiting(self):
         task = self._task_waiting_user()
@@ -309,15 +318,20 @@ class TestConfirmTask(unittest.TestCase):
         out = tp.confirm_task(task["id"])
         self.assertFalse(out.ok)
 
-    def test_repair_submit_failure(self):
-        """EHALL 提交仍为模拟实现，失败时状态回到 EXECUTING（阶段4保持旧行为）。"""
+    def test_repair_submit_failure_goes_failed(self):
+        """EHALL 提交仍为模拟实现：失败进入 FAILED 终态，不再卡在 EXECUTING。"""
         task = self._task_waiting_confirmation()
 
         out = tp.confirm_task(task["id"])
 
+        saved = tm.get_task(task["id"])
+
         self.assertFalse(out.ok)
-        self.assertEqual(tm.get_task(task["id"])["status"], "EXECUTING")
-        self.assertIn("尚未接入", out.events[-1])
+        self.assertEqual(saved["status"], "FAILED")
+        self.assertIn("尚未接入", saved["result"]["message"])
+        self.assertFalse(saved["result"]["success"])
+        # 执行结果被记录，重启后可以追溯
+        self.assertIn("任务状态：FAILED", out.events)
 
     def test_generic_task_completed(self):
         email = {
@@ -332,7 +346,87 @@ class TestConfirmTask(unittest.TestCase):
 
         out = tp.confirm_task(task["id"])
 
+        saved = tm.get_task(task["id"])
+
         self.assertTrue(out.ok)
+        self.assertEqual(saved["status"], "COMPLETED")
+        self.assertTrue(saved["result"]["success"])
+
+
+class TestRequestConfirmation(unittest.TestCase):
+
+    def setUp(self):
+        self._ctx = TempDataDir()
+        self._ctx.__enter__()
+        self._echo = tp.ECHO
+        tp.ECHO = False
+
+    def tearDown(self):
+        tp.ECHO = self._echo
+        self._ctx.__exit__(None, None, None)
+
+    def test_generic_snapshot(self):
+        email = {
+            "message_id": "g2", "subject": "事务",
+            "sender": "a@b", "date": "2026-09-20",
+        }
+        task = tm.create_task(email, {
+            "type": "事务办理", "core": "办理某事",
+            "need_action": True, "action": "填写表单",
+        })
+
+        out = tp.request_confirmation(task["id"])
+
+        saved = tm.get_task(task["id"])
+
+        self.assertTrue(out.ok)
+        self.assertEqual(saved["status"], "WAITING_CONFIRMATION")
+        self.assertEqual(saved["confirmation"]["title"], "即将执行任务")
+        self.assertEqual(
+            saved["confirmation"]["fields"][0]["value"],
+            "办理某事"
+        )
+
+    def test_repair_without_data_goes_waiting(self):
+        task = create_repair_task()
+
+        out = tp.request_confirmation(task["id"])
+
+        self.assertFalse(out.ok)
+        self.assertEqual(tm.get_task(task["id"])["status"], "WAITING_USER")
+
+
+class TestCancelTask(unittest.TestCase):
+
+    def setUp(self):
+        self._ctx = TempDataDir()
+        self._ctx.__enter__()
+        self._echo = tp.ECHO
+        tp.ECHO = False
+
+    def tearDown(self):
+        tp.ECHO = self._echo
+        self._ctx.__exit__(None, None, None)
+
+    def test_cancel_from_confirmation(self):
+        task = create_repair_task()
+        tm.update_task_status(task["id"], "WAITING_CONFIRMATION")
+
+        out = tp.cancel_task(task["id"])
+
+        saved = tm.get_task(task["id"])
+
+        self.assertTrue(out.ok)
+        self.assertEqual(saved["status"], "CANCELLED")
+        self.assertEqual(saved["result"]["message"], "用户取消任务")
+
+    def test_cancel_terminal_rejected(self):
+        task = create_repair_task()
+        tm.update_task_status(task["id"], "COMPLETED")
+
+        out = tp.cancel_task(task["id"])
+
+        self.assertFalse(out.ok)
         self.assertEqual(tm.get_task(task["id"])["status"], "COMPLETED")
 
 

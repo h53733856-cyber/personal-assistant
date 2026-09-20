@@ -14,6 +14,7 @@ Agent 任务处理核心。
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from tools.personal_db import search_documents
 from agent.llm import ask_llm_json
@@ -37,6 +38,22 @@ REQUIRED_REPAIR_FIELDS = {
     "DZ_FBSMJSSJ": "上门服务结束时间",
     "GZMS": "问题描述"
 }
+
+# 确认单中要展示的报修字段（顺序固定，便于阅读）
+REPAIR_CONFIRM_FIELDS = [
+    ("SJH", "手机号"),
+    ("XMDM", "报修类型"),
+    ("QYDM", "报修区域"),
+    ("GZDD", "详细地点"),
+    ("DZ_FBSMKSSJ", "上门服务开始时间"),
+    ("DZ_FBSMJSSJ", "上门服务结束时间"),
+    ("GZMS", "问题描述"),
+    ("BZ", "备注"),
+]
+
+
+def _now():
+    return datetime.now().isoformat(timespec="seconds")
 
 
 @dataclass
@@ -460,14 +477,97 @@ def process_task(task_id):
             return out
 
     # ==============================
-    # 第七步：信息完整，等待确认
+    # 第七步：信息完整，生成确认单等待用户确认
     # ==============================
 
-    update_task_status(task_id, "WAITING_CONFIRMATION", note="信息完整，等待用户确认")
+    return request_confirmation(task_id)
+
+
+# --------------------------------------------------
+# 生成确认单（等待用户确认）
+# --------------------------------------------------
+
+def request_confirmation(task_id):
+    """生成并保存确认单快照，任务进入 WAITING_CONFIRMATION。
+
+    确认单里包含将要执行的操作、关键字段和可能后果。
+    入口层（CLI / Web）必须在询问用户之前展示确认单，
+    用户明确同意后才能调用 confirm_task()。
+    """
+
+    out = Outcome()
+
+    task = get_task(task_id)
+
+    if task is None:
+        out.ok = False
+        out.emit("任务不存在。")
+        return out
+
+    core = task["analysis"]["core"]
+
+    if task["analysis"].get("type") == "宿舍报修":
+
+        repair_data = task.get("repair_data")
+
+        if not repair_data:
+            update_task_status(
+                task_id,
+                "WAITING_USER",
+                note="缺少报修数据，无法生成确认单"
+            )
+            out.ok = False
+            out.emit("缺少宿舍报修数据。")
+            return out
+
+        confirmation = {
+            "title": "即将提交 EHALL 宿舍报修申请",
+            "fields": [
+                {"label": label, "value": repair_data.get(key, "")}
+                for key, label in REPAIR_CONFIRM_FIELDS
+            ],
+            "warning": "确认后将提交该 EHALL 报修申请。",
+            "created_at": _now(),
+        }
+
+    else:
+
+        confirmation = {
+            "title": "即将执行任务",
+            "fields": [
+                {"label": "任务内容", "value": core},
+                {
+                    "label": "具体操作",
+                    "value": str(task["analysis"].get("action") or ""),
+                },
+            ],
+            "warning": "确认后 Agent 将执行该任务，可能产生实际后果。",
+            "created_at": _now(),
+        }
+
+    # 保存确认单快照，UI 之后只读快照，不受后续修改影响
+    update_task_data(task_id, "confirmation", confirmation)
+    update_task_status(
+        task_id,
+        "WAITING_CONFIRMATION",
+        note="已生成确认单，等待用户确认"
+    )
 
     out.emit()
     out.emit("个人信息已经足够。")
     out.emit("该任务可能需要进一步操作，因此等待用户确认。")
+    out.emit()
+    out.emit("================================")
+    out.emit(confirmation["title"])
+    out.emit("================================")
+
+    for field in confirmation["fields"]:
+        out.emit(field["label"] + "：" + str(field["value"]))
+
+    out.emit()
+    out.emit("注意：" + confirmation["warning"])
+    out.emit("================================")
+    out.emit()
     out.emit("任务状态：WAITING_CONFIRMATION")
 
     return out
@@ -645,6 +745,10 @@ COMPLETED
     # 根据 AI 判断修改任务状态
     next_status = decision.get("next_status", "WAITING_USER")
 
+    # 需要确认时，生成确认单快照（先展示，再等用户确认）
+    if next_status == "WAITING_CONFIRMATION":
+        return request_confirmation(task_id)
+
     update_task_status(task_id, next_status, note="AI 判断下一步状态")
 
     out.emit()
@@ -658,7 +762,13 @@ COMPLETED
 # --------------------------------------------------
 
 def confirm_task(task_id):
-    """用户确认后执行任务。"""
+    """执行已经过用户明确确认的任务。
+
+    注意：本函数只负责执行，不负责展示。
+    确认单的展示由 request_confirmation() 生成并交给入口层完成；
+    只有用户在 CLI / Web 上看到确认单并明确同意后，
+    入口层才允许调用本函数。Agent 自身永远不会代替用户确认。
+    """
 
     out = Outcome()
 
@@ -688,30 +798,8 @@ def confirm_task(task_id):
             out.emit("缺少宿舍报修数据")
             return out
 
-        # ==============================
-        # 提交前展示关键字段
-        # ==============================
-
-        out.emit()
-        out.emit("================================")
-        out.emit("即将提交 EHALL 宿舍报修申请")
-        out.emit("================================")
-
-        out.emit("手机号：" + str(repair_data.get("SJH", "")))
-        out.emit("报修类型：" + str(repair_data.get("XMDM", "")))
-        out.emit("报修区域：" + str(repair_data.get("QYDM", "")))
-        out.emit("详细地点：" + str(repair_data.get("GZDD", "")))
-        out.emit("上门服务开始时间：" + str(repair_data.get("DZ_FBSMKSSJ", "")))
-        out.emit("上门服务结束时间：" + str(repair_data.get("DZ_FBSMJSSJ", "")))
-        out.emit("问题描述：" + str(repair_data.get("GZMS", "")))
-        out.emit("备注：" + str(repair_data.get("BZ", "")))
-
-        out.emit()
-        out.emit("注意：确认后将提交该 EHALL 报修申请。")
-        out.emit("================================")
-
-        # 用户已经在上层流程明确确认
         update_task_status(task_id, "EXECUTING", note="用户已确认，开始执行")
+        out.emit("任务状态：EXECUTING")
 
         # ==============================
         # EHALL 提交
@@ -721,17 +809,24 @@ def confirm_task(task_id):
 
         result = submit_repair(repair_data)
 
+        update_task_data(task_id, "result", {
+            "at": _now(),
+            "success": result.get("success", False),
+            "message": result.get("message", ""),
+        })
+
         if result.get("success"):
             update_task_status(task_id, "COMPLETED", note="提交成功")
             out.emit(result.get("message", "提交成功"))
             out.data["result"] = result
             return out
 
-        # 当前 EHALL 工具还没有真实提交能力
-        update_task_status(task_id, "EXECUTING", note="提交失败，等待接入真实提交")
+        # 提交失败：进入 FAILED 终态，不再卡在 EXECUTING
+        update_task_status(task_id, "FAILED", note="EHALL 提交失败")
 
         out.ok = False
         out.emit(result.get("message", "提交失败"))
+        out.emit("任务状态：FAILED")
         out.data["result"] = result
         return out
 
@@ -739,8 +834,44 @@ def confirm_task(task_id):
     # 其他任务暂时保持模拟执行
     # ==============================
 
+    update_task_status(task_id, "EXECUTING", note="用户已确认，开始执行")
+    update_task_data(task_id, "result", {
+        "at": _now(),
+        "success": True,
+        "message": "模拟执行完成",
+    })
     update_task_status(task_id, "COMPLETED", note="模拟执行完成")
 
     out.emit("任务执行完成")
+
+    return out
+
+
+def cancel_task(task_id):
+    """用户明确取消任务。"""
+
+    out = Outcome()
+
+    task = get_task(task_id)
+
+    if task is None:
+        out.ok = False
+        out.emit("任务不存在")
+        return out
+
+    if task["status"] in ("COMPLETED", "FAILED", "CANCELLED"):
+        out.ok = False
+        out.emit("当前任务不需要取消")
+        return out
+
+    update_task_data(task_id, "result", {
+        "at": _now(),
+        "success": False,
+        "message": "用户取消任务",
+    })
+    update_task_status(task_id, "CANCELLED", note="用户取消任务")
+
+    out.emit("任务已经取消。")
+    out.emit("任务状态：CANCELLED")
 
     return out
