@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人助手</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --text: #1f2328;
+    --muted: #6b7280;
+    --border: #e2e4e8;
+    --accent: #2563eb;
+    --danger: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+    padding-bottom: 40px;
+  }
+  header {
+    position: sticky; top: 0;
+    background: var(--accent); color: #fff;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+    z-index: 10;
+  }
+  header h1 { font-size: 17px; flex: 1; }
+  header button {
+    background: rgba(255,255,255,.18); color: #fff;
+    border: 1px solid rgba(255,255,255,.35);
+    border-radius: 8px; padding: 6px 10px; font-size: 13px;
+  }
+  section { padding: 12px 16px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  textarea {
+    width: 100%; min-height: 64px;
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 15px; font-family: inherit;
+  }
+  button {
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 8px;
+    padding: 8px 14px; font-size: 14px;
+  }
+  button.danger { background: var(--danger); }
+  button.ghost {
+    background: #fff; color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .badge {
+    display: inline-block;
+    padding: 1px 8px; border-radius: 999px;
+    font-size: 12px; color: #fff;
+  }
+  .badge.NEW { background: #2563eb; }
+  .badge.PROCESSING { background: #d97706; }
+  .badge.WAITING_USER { background: #ca8a04; }
+  .badge.WAITING_CONFIRMATION { background: #dc2626; }
+  .badge.EXECUTING { background: #7c3aed; }
+  .badge.COMPLETED { background: #16a34a; }
+  .badge.FAILED { background: #991b1b; }
+  .badge.CANCELLED { background: #6b7280; }
+  .task-card { cursor: pointer; }
+  .task-card h3 { font-size: 15px; margin-bottom: 4px; }
+  .meta { color: var(--muted); font-size: 12px; }
+  .label { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .field-row {
+    display: flex; justify-content: space-between; gap: 8px;
+    border-bottom: 1px dashed var(--border);
+    padding: 5px 0; font-size: 14px;
+  }
+  .field-row .name { color: var(--muted); flex-shrink: 0; }
+  .warning {
+    background: #fef2f2; border: 1px solid #fecaca;
+    color: var(--danger); border-radius: 8px;
+    padding: 8px 10px; margin: 8px 0; font-size: 13px;
+  }
+  .events {
+    background: #f9fafb; border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; color: var(--muted);
+    white-space: pre-wrap; max-height: 200px; overflow-y: auto;
+  }
+  .hidden { display: none; }
+  .row { display: flex; gap: 8px; margin-top: 8px; }
+  .row button { flex: 1; }
+  .back { display: block; margin-bottom: 8px; color: var(--accent); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>个人助手</h1>
+  <button onclick="checkEmails()">检查邮件</button>
+  <button onclick="refresh()">刷新</button>
+</header>
+
+<!-- 列表页 -->
+<section id="list-page">
+  <div class="card">
+    <div class="label" style="margin-top:0">新建任务（例如：我要报修宿舍水龙头）</div>
+    <textarea id="new-task-text" placeholder="告诉助手你想做什么"></textarea>
+    <div class="row">
+      <button onclick="createTask()">创建任务</button>
+    </div>
+  </div>
+  <div id="task-list"></div>
+</section>
+
+<!-- 详情页 -->
+<section id="detail-page" class="hidden">
+  <a class="back" href="javascript:void(0)" onclick="showList()">← 返回列表</a>
+  <div id="detail"></div>
+</section>
+
+<script>
+const STATUS_NAMES = {
+  NEW: "新建", PROCESSING: "处理中",
+  WAITING_USER: "等你补充", WAITING_CONFIRMATION: "等你确认",
+  EXECUTING: "执行中", COMPLETED: "已完成",
+  CANCELLED: "已取消", FAILED: "失败",
+};
+
+async function api(path, options) {
+  const r = await fetch(path, options);
+  if (!r.ok) {
+    let msg = "请求失败：" + r.status;
+    try { msg = (await r.json()).message || msg; } catch (e) {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+async function refresh() {
+  const tasks = await api("/api/tasks");
+  renderList(tasks);
+}
+
+function renderList(tasks) {
+  const box = document.getElementById("task-list");
+  if (!tasks.length) {
+    box.innerHTML = '<div class="card meta">暂无任务</div>';
+    return;
+  }
+  box.innerHTML = tasks.map(t => `
+    <div class="card task-card" onclick="showDetail(${t.id})">
+      <h3>
+        <span class="badge ${t.status}">${STATUS_NAMES[t.status] || t.status}</span>
+        ${escapeHtml(t.subject)}
+      </h3>
+      <div class="meta">#${t.id} · ${t.source === "user" ? "用户发起" : "邮件触发"} · ${t.created_at || ""}</div>
+      <div class="meta">${escapeHtml(t.core || "")}</div>
+    </div>`).join("");
+}
+
+async function showDetail(id) {
+  const task = await api("/api/tasks/" + id);
+  document.getElementById("list-page").classList.add("hidden");
+  document.getElementById("detail-page").classList.remove("hidden");
+  renderDetail(task);
+}
+
+function showList() {
+  document.getElementById("detail-page").classList.add("hidden");
+  document.getElementById("list-page").classList.remove("hidden");
+  refresh();
+}
+
+function renderDetail(t) {
+  let html = `
+    <div class="card">
+      <h3><span class="badge ${t.status}">${STATUS_NAMES[t.status] || t.status}</span>
+        ${escapeHtml(t.subject)}</h3>
+      <div class="meta">#${t.id} · ${t.source === "user" ? "用户发起" : "邮件触发"}
+        ${t.created_at ? " · " + t.created_at : ""}</div>
+      <div class="label">核心事项</div>
+      <div>${escapeHtml((t.analysis || {}).core || "")}</div>
+      ${(t.analysis || {}).action ? `<div class="label">需要做什么</div><div>${escapeHtml(t.analysis.action)}</div>` : ""}
+    </div>`;
+
+  if (t.user_inputs && t.user_inputs.length) {
+    html += `<div class="card"><div class="label" style="margin-top:0">你补充过的信息</div>
+      ${t.user_inputs.map(u => `<div>· ${escapeHtml(u)}</div>`).join("")}</div>`;
+  }
+
+  if (t.repair_data) {
+    const names = {
+      SJH: "手机号", XMDM: "报修类型", QYDM: "报修区域", GZDD: "详细地点",
+      DZ_FBSMKSSJ: "上门开始", DZ_FBSMJSSJ: "上门结束",
+      GZMS: "问题描述", BZ: "备注", GZTP: "故障图片",
+    };
+    html += `<div class="card"><div class="label" style="margin-top:0">报修信息</div>`;
+    for (const [k, name] of Object.entries(names)) {
+      if (t.repair_data[k] != null && t.repair_data[k] !== "") {
+        html += `<div class="field-row"><span class="name">${name}</span><span>${escapeHtml(String(t.repair_data[k]))}</span></div>`;
+      }
+    }
+    html += `</div>`;
+  }
+
+  if (t.status === "WAITING_USER") {
+    html += `
+    <div class="card">
+      <div class="label" style="margin-top:0">补充信息</div>
+      <textarea id="reply-text" placeholder="例如：我住在仙林校区某宿舍楼某房间，手机号13800000000，今晚19:00到21:00方便上门维修"></textarea>
+      <div class="row"><button onclick="submitInput(${t.id})">提交补充</button></div>
+    </div>`;
+  }
+
+  if (t.status === "WAITING_CONFIRMATION" && t.confirmation) {
+    const c = t.confirmation;
+    html += `
+    <div class="card">
+      <div class="label" style="margin-top:0">待确认操作</div>
+      <h3 style="font-size:14px;margin:4px 0">${escapeHtml(c.title)}</h3>
+      ${c.fields.map(f => `<div class="field-row"><span class="name">${escapeHtml(f.label)}</span><span>${escapeHtml(String(f.value))}</span></div>`).join("")}
+      <div class="warning">⚠ ${escapeHtml(c.warning)}</div>
+      <div class="row">
+        <button class="danger" onclick="doConfirm(${t.id})">确认执行</button>
+        <button class="ghost" onclick="doCancel(${t.id})">取消任务</button>
+      </div>
+    </div>`;
+  }
+
+  if (t.history && t.history.length) {
+    html += `<div class="card"><div class="label" style="margin-top:0">进度</div>
+      ${t.history.map(h => `<div class="meta">${h.at || ""} · ${h.from ? h.from + " → " : ""}${h.to}${h.note ? " · " + escapeHtml(h.note) : ""}</div>`).join("")}</div>`;
+  }
+
+  if (t.result) {
+    html += `<div class="card"><div class="label" style="margin-top:0">执行结果</div>
+      <div class="meta">${escapeHtml(JSON.stringify(t.result))}</div></div>`;
+  }
+
+  document.getElementById("detail").innerHTML = html;
+}
+
+async function createTask() {
+  const text = document.getElementById("new-task-text").value.trim();
+  if (!text) { alert("请先输入任务内容"); return; }
+  try {
+    const data = await api("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    document.getElementById("new-task-text").value = "";
+    if (data.created) {
+      alert("任务已创建：" + data.task.id + "，正在自动处理");
+      showDetail(data.task.id);
+    } else {
+      alert("这个请求不需要创建任务。");
+    }
+  } catch (e) { alert(e.message); }
+}
+
+async function submitInput(id) {
+  const text = document.getElementById("reply-text").value.trim();
+  if (!text) { alert("请先输入补充内容"); return; }
+  try {
+    const data = await api(`/api/tasks/${id}/input`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    renderDetail(data.task);
+    if (data.events && data.events.length) {
+      const box = document.createElement("div");
+      box.className = "card events";
+      box.textContent = data.events.join("\n");
+      document.getElementById("detail").prepend(box);
+    }
+  } catch (e) { alert(e.message); }
+}
+
+async function doConfirm(id) {
+  if (!confirm("确认执行该操作吗？确认后将产生实际后果。")) return;
+  try {
+    const data = await api(`/api/tasks/${id}/confirm`, { method: "POST" });
+    renderDetail(data.task);
+    if (!data.ok) alert(data.events[data.events.length - 1] || "执行失败");
+  } catch (e) { alert(e.message); }
+}
+
+async function doCancel(id) {
+  if (!confirm("确定取消这个任务吗？")) return;
+  try {
+    const data = await api(`/api/tasks/${id}/cancel`, { method: "POST" });
+    renderDetail(data.task);
+  } catch (e) { alert(e.message); }
+}
+
+async function checkEmails() {
+  try {
+    const data = await api("/api/emails/check", { method: "POST" });
+    if (data.events && data.events.length) {
+      alert(data.events.slice(0, 20).join("\n"));
+    } else {
+      alert("没有新邮件。");
+    }
+    refresh();
+  } catch (e) { alert(e.message); }
+}
+
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s == null ? "" : String(s);
+  return div.innerHTML;
+}
+
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>
