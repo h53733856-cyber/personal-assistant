@@ -151,6 +151,28 @@ def create_task(email, analysis):
         return task
 
 
+# 根据用户主动请求创建一个新任务（无邮件信息）
+def create_user_task(subject, analysis):
+
+    with _lock:
+
+        tasks = load_tasks()
+
+        task = _new_task(
+            subject=subject,
+            source="user",
+            analysis=analysis,
+        )
+
+        task["id"] = _next_id(tasks)
+
+        tasks.append(task)
+
+        save_tasks(tasks)
+
+        return task
+
+
 # 判断某封邮件是否已经创建过任务
 def task_exists(message_id):
 

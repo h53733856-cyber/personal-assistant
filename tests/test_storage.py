@@ -137,6 +137,18 @@ class TestTaskStorage(unittest.TestCase):
         self.assertEqual(t3["id"], 3)
         self.assertIsNotNone(t1)
 
+    def test_create_user_task(self):
+        task = tm.create_user_task(
+            "我要报修宿舍水龙头",
+            {"type": "宿舍报修", "core": "报修水龙头", "need_action": True},
+        )
+
+        self.assertEqual(task["source"], "user")
+        self.assertNotIn("message_id", task)
+        self.assertEqual(task["subject"], "我要报修宿舍水龙头")
+        self.assertEqual(task["status"], "NEW")
+        self.assertEqual(tm.get_task(task["id"])["source"], "user")
+
     def test_history_records_transitions(self):
         task = tm.create_task(fake_email(), {"core": "x"})
         tm.update_task_status(task["id"], "PROCESSING", note="开始处理")
