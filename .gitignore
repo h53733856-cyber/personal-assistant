@@ -4,3 +4,9 @@ __pycache__/
 *.pyc
 tasks/next_id.txt
 *.har
+
+# 运行时个人数据
+data/emails/
+tasks/
+rules/
+!rules/README.md
